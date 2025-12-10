@@ -1,0 +1,100 @@
+:root{
+    --max: 1100px;
+    --bg: 16 18 24;
+    --t: 255 255 255;
+    --muted: 200 205 215;
+    --accent: 255 79 79;
+    --accent2: 255 196 0;
+}
+
+.auth-page{
+    min-height: calc(100vh - 76px);
+    display: grid;
+    place-items: center;
+    padding: 24px 16px 40px;
+    background: rgb(var(--bg));
+    color: rgb(var(--t));
+}
+
+.auth-card{
+    width: 100%;
+    max-width: 440px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.35);
+}
+
+.auth-card h2{
+    margin: 0 0 6px;
+    font-size: 28px;
+}
+.auth-card .muted{
+    margin: 0 0 16px;
+    color: rgba(var(--muted), .9);
+}
+
+.auth-form{
+    display: grid;
+    gap: 12px;
+    margin-top: 8px;
+}
+.auth-form label{
+    font-weight: 600;
+    font-size: 14px;
+}
+.auth-form input{
+    width: 100%;
+    padding: 12px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.05);
+    color: #fff;
+    outline: none;
+}
+.auth-form input:focus{
+    border-color: rgba(255,255,255,.35);
+    box-shadow: 0 0 0 3px rgba(255,255,255,.12);
+}
+
+.input-wrap{
+    position: relative;
+}
+.pw-toggle{
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    display: grid; place-items: center;
+    border: 0;
+    background: transparent;
+    color: rgba(255,255,255,.9);
+    cursor: pointer;
+}
+
+.btn{
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 12px 16px; border-radius: 12px; text-decoration: none; font-weight: 700;
+    border: 1px solid transparent; transition: transform .15s ease;
+}
+.btn:hover{ transform: translateY(-2px); }
+.btn.primary{
+    background: linear-gradient(90deg, rgb(var(--accent)), rgb(var(--accent2)));
+    color: #191a1f;
+}
+
+.error{
+    color: #ff6b6b;
+    margin: 4px 0 0;
+    font-weight: 600;
+}
+
+.switch{
+    margin-top: 12px;
+    color: rgba(var(--muted), .95);
+}
+.switch a{ color: #fff; text-decoration: none; }
+.switch a:hover{ text-decoration: underline; }
