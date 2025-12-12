@@ -318,7 +318,6 @@ export default function Profile() {
                   </div>
 
                   <div className="right">
-                    <div className="total">{money(o.total)} BGN</div>
 
                     <button className="btn secondary" onClick={() => toggleStatusHistory(orderId)}>
                       {isHistoryOpen ? "Hide status history" : "Status history"}
@@ -330,12 +329,12 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Timeline (enum-based) */}
+                {/* Timeline (enum-based)
                 <div className="order__timeline">
                   {timeline.map(({ step, ts, done }) => (
                     <Stage key={step} label={STATUS_LABEL[step]} ts={ts} done={done} />
                   ))}
-                </div>
+                </div> */}
 
                 {/* Status history panel (raw list) */}
                 {isHistoryOpen && (
@@ -366,7 +365,7 @@ export default function Profile() {
                       <div className="thumb" style={{ backgroundImage: `url(${it.imageUrl || ""})` }} />
                       <div className="meta">
                         <div className="name">
-                          {it.name}
+                          {it.productName}
                           {it.variantLabel ? ` — ${it.variantLabel}` : ""}
                         </div>
 
@@ -388,11 +387,12 @@ export default function Profile() {
                     </li>
                   ))}
                 </ul>
+                <div className="total">{money(o.total)} BGN</div>
 
-                {(o.deliveryAddress || o.deliveryPhone) && (
+                {(o.address || o.phoneNumber) && (
                   <div className="order__delivery muted">
-                    <div>Address: {o.deliveryAddress || "—"}</div>
-                    <div>Phone: {o.deliveryPhone || "—"}</div>
+                    <div>Address: {o.address || "—"}</div>
+                    <div>Phone: {o.phoneNumber || "—"}</div>
                   </div>
                 )}
               </article>

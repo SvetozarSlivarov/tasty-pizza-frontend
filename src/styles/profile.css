@@ -113,3 +113,9 @@
     padding: 8px 12px; border-radius: 10px; cursor: pointer;
 }
 .btn:hover { filter: brightness(1.1); }
+.total {
+    font-weight: 600;
+    font-size: 20px;
+    text-align: right;
+    
+}
