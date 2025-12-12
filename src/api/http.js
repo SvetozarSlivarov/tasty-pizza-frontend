@@ -1,10 +1,18 @@
 const API_BASE = process.env.REACT_APP_API_BASE ?? "";
 
-const TOKEN_KEY = "tp_token";
+const ACCESS_TOKEN_KEY = "tp_access_token";
+const REFRESH_TOKEN_KEY = "tp_refresh_token";
+
 export const tokenStore = {
-    get:   () => localStorage.getItem(TOKEN_KEY),
-    set:   (t) => localStorage.setItem(TOKEN_KEY, t),
-    clear: () => localStorage.removeItem(TOKEN_KEY),
+  get:   () => localStorage.getItem(ACCESS_TOKEN_KEY),
+  set:   (t) => localStorage.setItem(ACCESS_TOKEN_KEY, t),
+  clear: () => localStorage.removeItem(ACCESS_TOKEN_KEY),
+};
+
+export const refreshTokenStore = {
+  get:   () => localStorage.getItem(REFRESH_TOKEN_KEY),
+  set:   (t) => localStorage.setItem(REFRESH_TOKEN_KEY, t),
+  clear: () => localStorage.removeItem(REFRESH_TOKEN_KEY),
 };
 
 const DEFAULT_TIMEOUT_MS = 15000;

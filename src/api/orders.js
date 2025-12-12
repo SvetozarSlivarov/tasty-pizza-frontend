@@ -1,8 +1,7 @@
 import { http } from "./http";
 
 export const ordersApi = {
-    my:   ({ status = "all", sort = "ordered_desc" } = {}) =>
-        http.get(`/users/me/orders?status=${encodeURIComponent(status)}&sort=${encodeURIComponent(sort)}`),
+    my:   () => http.get(`orders/my`),
 
     reorder: (orderId) =>
         http.post(`api/orders/${orderId}/reorder`, {}),
