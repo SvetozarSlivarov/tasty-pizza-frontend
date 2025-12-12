@@ -1,8 +1,7 @@
-import { http, tokenStore, refreshTokenStore } from "./http";
+import { http, tokenStore } from "./http";
 
 function storeAuth(res) {
   if (res?.accessToken) tokenStore.set(res.accessToken);
-  if (res?.refreshToken) refreshTokenStore.set(res.refreshToken);
 }
 
 export const authApi = {
@@ -24,16 +23,16 @@ export const authApi = {
     return http.put("/users/me", payload);
   },
 
-  logout: async () => {
-    tokenStore.clear();
-    refreshTokenStore.clear();
+  async logout() {
+    try {
+      await http.post("/auth/logout");
+    } finally {
+      tokenStore.clear();
+    }
   },
 
-  refresh: async () => {
-    const refreshToken = refreshTokenStore.get();
-    if (!refreshToken) throw new Error("Missing refresh token");
-
-    const res = await http.post("/auth/refresh", { refreshToken });
+  async refresh() {
+    const res = await http.post("/auth/refresh");
     storeAuth(res);
     return res;
   },
