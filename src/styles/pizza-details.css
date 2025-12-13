@@ -1,0 +1,467 @@
+/* src/styles/pizza-details.css */
+
+.pd {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 16px 36px;
+}
+
+.pd-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .pd-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pd-card {
+  background: #fff;
+  border: 1px solid rgba(16, 24, 40, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 18px rgba(16, 24, 40, 0.06);
+}
+
+.pd-card + .pd-card {
+  margin-top: 14px;
+}
+
+.pd-card__body {
+  padding: 16px;
+}
+
+.pd-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.pd-title h1 {
+  font-size: 28px;
+  margin: 0;
+  line-height: 1.15;
+}
+
+.pd-badge {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 199, 0, 0.22);
+  border: 1px solid rgba(255, 199, 0, 0.35);
+  white-space: nowrap;
+}
+
+.pd-desc {
+  margin: 0;
+  color: rgba(17, 24, 39, 0.75);
+  line-height: 1.5;
+}
+
+.pd-hero {
+  overflow: hidden;
+}
+
+.pd-hero img {
+  width: 100%;
+  display: block;
+  aspect-ratio: 16/11;
+  object-fit: cover;
+}
+
+.pd-section-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(17, 24, 39, 0.65);
+}
+
+/* Controls */
+.pd-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pd-field {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.pd-field label {
+  font-size: 12px;
+  color: rgba(17, 24, 39, 0.7);
+}
+
+.pd-input,
+.pd-select {
+  width: 100%;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  padding: 0 12px;
+  outline: none;
+  background: #fff;
+}
+
+.pd-input:focus,
+.pd-select:focus {
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.pd-note {
+  min-width: 240px;
+  flex: 1;
+}
+
+/* Pills list */
+.pd-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.pd-item {
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(249, 250, 251, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pd-item:hover {
+  background: rgba(249, 250, 251, 1);
+}
+
+.pd-item--disabled {
+  opacity: 0.65;
+}
+
+.pd-check {
+  width: 18px;
+  height: 18px;
+  accent-color: #111827;
+}
+
+.pd-item-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pd-item-name {
+  font-weight: 600;
+  color: rgba(17, 24, 39, 0.95);
+}
+
+.pd-item-hint {
+  font-size: 12px;
+  color: rgba(17, 24, 39, 0.6);
+}
+
+.pd-item-price {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Sticky summary (right side) */
+.pd-summary {
+  position: sticky;
+  top: 100px;
+}
+
+.pd-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 14px 14px;
+  border-radius: 14px;
+  background: rgba(17, 24, 39, 0.04);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.pd-total-label {
+  color: rgba(17, 24, 39, 0.7);
+  font-size: 13px;
+}
+
+.pd-total-value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pd-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pd-btn {
+  height: 42px;
+  border-radius: 14px;
+  padding: 0 14px;
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  background: #111827;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 1;
+}
+
+.pd-btn:hover {
+  filter: brightness(1.02);
+}
+
+.pd-btn:active {
+  transform: translateY(1px);
+}
+
+.pd-btn--ghost {
+  background: #fff;
+  color: #111827;
+}
+
+.pd-error {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  color: rgba(185, 28, 28, 0.95);
+  font-weight: 600;
+}
+
+.pd-loading {
+  padding: 30px 16px;
+  color: rgba(17, 24, 39, 0.75);
+}
+.pd-hero img {
+  aspect-ratio: 4 / 3;
+  border-radius: 20px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Remove dull gray background behind image */
+.pd-hero {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Options card = warmer */
+.pd-summary .pd-card {
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #fff8f0 100%
+  );
+}
+
+/* Options title stronger */
+.pd-summary .pd-section-title {
+  color: #92400e;
+  font-weight: 700;
+}
+
+/* Total = HERO */
+.pd-total {
+  background: linear-gradient(
+    135deg,
+    #ffedd5,
+    #fed7aa
+  );
+  border: 1px solid #fdba74;
+}
+
+.pd-total-value {
+  color: #7c2d12;
+  font-size: 34px;
+}
+
+/* CTA button = pizza energy */
+.pd-btn {
+  background: linear-gradient(
+    135deg,
+    #ef4444,
+    #f97316
+  );
+  border: none;
+  box-shadow: 0 10px 24px rgba(239, 68, 68, 0.35);
+}
+
+.pd-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(239, 68, 68, 0.45);
+}
+
+/* Cancel softer */
+.pd-btn--ghost {
+  background: #fff;
+  color: #7c2d12;
+  border: 1px solid #fed7aa;
+}
+
+/* Editing badge more visible */
+.pd-badge {
+  background: linear-gradient(
+    135deg,
+    #fde68a,
+    #facc15
+  );
+  border: none;
+  color: #713f12;
+}
+
+/* Inputs slightly rounder */
+.pd-input,
+.pd-select {
+  border-radius: 14px;
+}
+
+/* Ingredients pills = more tactile */
+.pd-item {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pd-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+.pd-card {
+  background: #1f2937; /* gray-800 */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* Remove any leftover white */
+.pd-card__body {
+  background: transparent;
+}
+
+/* Text colors */
+.pd-title h1,
+.pd-item-name,
+.pd-total-value {
+  color: #f9fafb;
+}
+
+.pd-desc,
+.pd-item-hint,
+.pd-total-label,
+.pd-section-title {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Hero image stays clean */
+.pd-hero {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Inputs & select -> dark */
+.pd-input,
+.pd-select {
+  background: #111827;
+  color: #f9fafb;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pd-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.pd-input:focus,
+.pd-select:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+}
+
+/* Ingredients pills */
+.pd-item {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pd-item:hover {
+  background: #0f172a;
+}
+
+.pd-item--disabled {
+  opacity: 0.6;
+}
+
+/* Checkboxes */
+.pd-check {
+  accent-color: #f59e0b;
+}
+
+/* TOTAL block */
+.pd-total {
+  background: linear-gradient(
+    135deg,
+    #111827,
+    #1f2937
+  );
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.pd-total-value {
+  color: #fbbf24;
+}
+
+/* Buttons */
+.pd-btn {
+  background: linear-gradient(
+    135deg,
+    #f59e0b,
+    #f97316
+  );
+  color: #111827;
+  border: none;
+}
+
+.pd-btn:hover {
+  filter: brightness(1.05);
+}
+
+.pd-btn--ghost {
+  background: transparent;
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+/* Badge */
+.pd-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+/* Error */
+.pd-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fecaca;
+}

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { authApi } from "../api/auth";
+import { startRefreshScheduler } from "../auth/refreshScheduler";
 
 const AuthCtx = createContext(null);
 
@@ -7,6 +8,11 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [booted, setBooted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+  const stop = startRefreshScheduler(15_000);
+  return () => stop();
+}, []);
 
   useEffect(() => {
     (async () => {

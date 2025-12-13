@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-
 import { productApi } from "../api/catalog";
 import { cartApi } from "../api/cart";
+import styles from "../styles/PizzaDetails.module.css";
 
 function money(n) {
   const x = Number(n);
@@ -21,23 +21,20 @@ export default function PizzaDetails() {
   const navigate = useNavigate();
   const cart = useCart();
 
-  const editItemId = searchParams.get("editItemId"); // <-- from CartDrawer link
+  const editItemId = searchParams.get("editItemId");
   const isEditMode = !!editItemId;
 
   const [pizza, setPizza] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // form state
   const [variantId, setVariantId] = useState(null);
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
 
-  // ingredientId sets (after you fixed backend mapping, ingredientId is correct)
   const [removedIds, setRemovedIds] = useState(() => new Set());
   const [addedIds, setAddedIds] = useState(() => new Set());
 
-  // ---- Load pizza + (optionally) cart item for prefill
   useEffect(() => {
     let cancelled = false;
 
@@ -46,30 +43,26 @@ export default function PizzaDetails() {
         setLoading(true);
         setError(null);
 
-        // 1) Load pizza details
         const res = await productApi.pizza(id, true);
 
-        const baseIngredients =
-          (res.ingredients ?? []).map((x) => ({
-            id: x.ingredientId,
-            name: x.ingredientName,
-            removable: !!x.removable,
-          }));
+        const baseIngredients = (res.ingredients ?? []).map((x) => ({
+          id: x.ingredientId,
+          name: x.ingredientName,
+          removable: !!x.removable,
+        }));
 
-        const allowedIngredients =
-          (res.allowedIngredients ?? []).map((x) => ({
-            id: x.ingredientId,
-            name: x.ingredientName,
-            extraPrice: money(x.extraPrice),
-          }));
+        const allowedIngredients = (res.allowedIngredients ?? []).map((x) => ({
+          id: x.ingredientId,
+          name: x.ingredientName,
+          extraPrice: money(x.extraPrice),
+        }));
 
-        const variants =
-          (res.variants ?? []).map((v) => ({
-            id: v.id,
-            size: v.size,
-            dough: v.dough,
-            extraPrice: money(v.extraPrice),
-          }));
+        const variants = (res.variants ?? []).map((v) => ({
+          id: v.id,
+          size: v.size,
+          dough: v.dough,
+          extraPrice: money(v.extraPrice),
+        }));
 
         const normalized = {
           ...res,
@@ -81,9 +74,9 @@ export default function PizzaDetails() {
         };
 
         if (cancelled) return;
+
         setPizza(normalized);
 
-        // defaults
         const defaultVariantId = variants[0]?.id ?? null;
         setVariantId(defaultVariantId);
         setQty(1);
@@ -91,34 +84,35 @@ export default function PizzaDetails() {
         setRemovedIds(new Set());
         setAddedIds(new Set());
 
-        // 2) If edit mode -> fetch cart and prefill from the item
         if (isEditMode) {
-          const cart = await cartApi.get(); // expects your http.get to return cart object
+          if (!cart.items || cart.items.length === 0) {
+            await cart.refresh();
+          }
+
           const itemIdNum = Number(editItemId);
-          const item = (cart?.items ?? []).find((x) => Number(x.id) === itemIdNum);
+          const item = (cart.items ?? []).find((x) => Number(x.id) === itemIdNum);
 
           if (!item) {
             setError("Edit item not found in cart.");
             return;
           }
 
-          // basic fields
           setQty(toInt(item.qty, 1) ?? 1);
           setNote(item.note ?? "");
 
-          // variant (only if present)
-          if (item.variantId != null) setVariantId(toInt(item.variantId, defaultVariantId));
+          const itemVariantId = item.pizzaVariantId != null ? Number(item.pizzaVariantId) : null;
+          if (itemVariantId != null) setVariantId(itemVariantId);
 
-          // customizations -> sets
           const adds = new Set();
           const removes = new Set();
 
           (item.customizations ?? []).forEach((c) => {
-            const action = String(c.action || "").toLowerCase();
+            const action = String(c.action || "").toUpperCase();
             const ingId = toInt(c.ingredientId, null);
             if (ingId == null) return;
-            if (action === "add") adds.add(ingId);
-            if (action === "remove") removes.add(ingId);
+
+            if (action === "ADD") adds.add(ingId);
+            if (action === "REMOVE") removes.add(ingId);
           });
 
           setAddedIds(adds);
@@ -141,7 +135,7 @@ export default function PizzaDetails() {
     return () => {
       cancelled = true;
     };
-  }, [id, isEditMode, editItemId]);
+  }, [id, isEditMode, editItemId]); // ok
 
   const selectedVariant = useMemo(() => {
     if (!pizza?.variants?.length) return null;
@@ -150,6 +144,7 @@ export default function PizzaDetails() {
 
   const totalPrice = useMemo(() => {
     if (!pizza) return 0;
+
     const base = money(pizza.basePrice);
     const variantExtra = money(selectedVariant?.extraPrice);
 
@@ -163,6 +158,7 @@ export default function PizzaDetails() {
 
   function toggleRemove(ingredientId, removable) {
     if (!removable) return;
+
     setRemovedIds((prev) => {
       const next = new Set(prev);
       next.has(ingredientId) ? next.delete(ingredientId) : next.add(ingredientId);
@@ -186,30 +182,38 @@ export default function PizzaDetails() {
       const removeIngredientIds = Array.from(removedIds).map(Number);
       const addIngredientIds = Array.from(addedIds).map(Number);
 
+      const safeQty = Math.max(1, toInt(qty, 1) ?? 1);
+
+      if (!variantId) {
+        setError("Please select a variant.");
+        return;
+      }
+
       if (isEditMode) {
         await cartApi.updateItem(editItemId, {
-          qty: Math.max(1, toInt(qty, 1) ?? 1),
+          quantity: safeQty,
           note,
-          variantId: variantId ?? null,
+          variantId: variantId,
           addIngredientIds,
           removeIngredientIds,
         });
 
-        navigate("/menu");
+        await cart.refresh();
         cart.open();
+        navigate("/menu");
         return;
       }
 
-      await cartApi.addPizza({
+      await cart.addPizza({
         productId: Number(pizza.id),
-        variantId: variantId ?? null,
-        quantity: Math.max(1, toInt(qty, 1) ?? 1),
+        variantId: variantId,
+        quantity: safeQty,
         note,
         addIngredientIds,
         removeIngredientIds,
       });
 
-      navigate("/cart");
+      navigate("/menu");
     } catch (e) {
       const msg =
         e?.response?.data?.message ||
@@ -222,125 +226,177 @@ export default function PizzaDetails() {
   }
 
   function onCancel() {
-    navigate("/cart");
+    cart.open();
+    navigate("/menu");
   }
 
-  if (loading) return <p>Loading…</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  if (loading) return <p className={styles.loading}>Loading…</p>;
+  if (error) return <p className={styles.error}>{error}</p>;
   if (!pizza) return null;
 
   return (
-    <div>
-      <h1>{pizza.name}</h1>
+    <div className={styles.pd}>
+      <div className={styles.grid}>
+        {/* LEFT */}
+        <div>
+          <div className={styles.hero}>
+            {pizza.imageUrl ? (
+              <img src={pizza.imageUrl} alt={pizza.name} className={styles.heroImg} />
+            ) : (
+              <div className={styles.card}>
+                <div className={styles.cardBody}>
+                  <p className={styles.desc}>No image.</p>
+                </div>
+              </div>
+            )}
+          </div>
 
-      {pizza.imageUrl && (
-        <img
-          src={pizza.imageUrl}
-          alt={pizza.name}
-          style={{ maxWidth: 520, width: "100%", borderRadius: 12 }}
-        />
-      )}
+          <div className={styles.card}>
+            <div className={styles.cardBody}>
+              <div className={styles.titleRow}>
+                <h1 className={styles.title}>{pizza.name}</h1>
+                <span className={styles.badge}>{isEditMode ? "Editing" : "Customize"}</span>
+              </div>
+              <p className={styles.desc}>{pizza.description}</p>
+            </div>
+          </div>
 
-      <p>{pizza.description}</p>
+          <div className={styles.card}>
+            <div className={styles.cardBody}>
+              <h3 className={styles.sectionTitle}>Base ingredients</h3>
 
-      {/* Variant */}
-      {pizza.variants?.length > 0 && (
-        <>
-          <h3>Variant</h3>
-          <select
-            value={variantId ?? ""}
-            onChange={(e) => setVariantId(Number(e.target.value))}
-          >
-            {pizza.variants.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.size} / {v.dough}
-                {v.extraPrice > 0 ? ` (+${v.extraPrice.toFixed(2)} BGN)` : ""}
-              </option>
-            ))}
-          </select>
-        </>
-      )}
+              <ul className={styles.list}>
+                {pizza.baseIngredients.map((ing) => {
+                  const checked = !removedIds.has(ing.id);
+                  return (
+                    <li
+                      key={ing.id}
+                      className={`${styles.item} ${!ing.removable ? styles.itemDisabled : ""}`}
+                    >
+                      <input
+                        className={styles.check}
+                        type="checkbox"
+                        disabled={!ing.removable}
+                        checked={checked}
+                        onChange={() => toggleRemove(ing.id, ing.removable)}
+                      />
+                      <div className={styles.itemTitle}>
+                        <span className={styles.itemName}>{ing.name}</span>
+                        {!ing.removable && <span className={styles.itemHint}>Required</span>}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
 
-      {/* Quantity + Note */}
-      <h3>Options</h3>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <label>
-          Quantity{" "}
-          <input
-            type="number"
-            min={1}
-            value={qty}
-            onChange={(e) => setQty(Number(e.target.value) || 1)}
-            style={{ width: 90 }}
-          />
-        </label>
+          {pizza.allowedIngredients?.length > 0 && (
+            <div className={styles.card}>
+              <div className={styles.cardBody}>
+                <h3 className={styles.sectionTitle}>Extras</h3>
 
-        <label style={{ flex: 1, minWidth: 240 }}>
-          Note{" "}
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Optional note…"
-            style={{ width: "100%" }}
-          />
-        </label>
-      </div>
+                <ul className={styles.list}>
+                  {pizza.allowedIngredients.map((ing) => {
+                    const checked = addedIds.has(ing.id);
+                    return (
+                      <li key={ing.id} className={styles.item}>
+                        <input
+                          className={styles.check}
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleAdd(ing.id)}
+                        />
 
-      {/* Price */}
-      <p>
-        <strong>Total:</strong> {totalPrice.toFixed(2)} BGN
-      </p>
+                        <div className={styles.itemTitle}>
+                          <span className={styles.itemName}>{ing.name}</span>
+                        </div>
 
-      {/* Base ingredients */}
-      <h3>Base ingredients</h3>
-      <ul>
-        {pizza.baseIngredients.map((ing) => (
-          <li key={ing.id}>
-            <label style={{ opacity: ing.removable ? 1 : 0.7 }}>
-              <input
-                type="checkbox"
-                disabled={!ing.removable}
-                checked={!removedIds.has(ing.id)}
-                onChange={() => toggleRemove(ing.id, ing.removable)}
-              />
-              {ing.name}
-              {!ing.removable ? " (required)" : ""}
-            </label>
-          </li>
-        ))}
-      </ul>
+                        <span className={styles.itemPrice}>
+                          {ing.extraPrice > 0 ? `+${ing.extraPrice.toFixed(2)} BGN` : "Free"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
 
-      {/* Extras */}
-      {pizza.allowedIngredients?.length > 0 && (
-        <>
-          <h3>Extras</h3>
-          <ul>
-            {pizza.allowedIngredients.map((ing) => (
-              <li key={ing.id}>
-                <label>
+        {/* RIGHT */}
+        <div className={styles.summary}>
+          <div className={styles.card}>
+            <div className={styles.cardBody}>
+              <h3 className={styles.sectionTitle}>Options</h3>
+
+              {pizza.variants?.length > 0 && (
+                <div className={styles.field} style={{ marginBottom: 12 }}>
+                  <div className={styles.fieldLabel}>Variant</div>
+                  <select
+                    className={styles.select}
+                    value={variantId ?? ""}
+                    onChange={(e) => setVariantId(Number(e.target.value))}
+                  >
+                    {pizza.variants.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.size} / {v.dough}
+                        {v.extraPrice > 0 ? ` (+${v.extraPrice.toFixed(2)} BGN)` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className={styles.row}>
+                <div className={styles.field} style={{ minWidth: 140 }}>
+                  <div className={styles.fieldLabel}>Quantity</div>
                   <input
-                    type="checkbox"
-                    checked={addedIds.has(ing.id)}
-                    onChange={() => toggleAdd(ing.id)}
+                    className={styles.input}
+                    type="number"
+                    min={1}
+                    value={qty}
+                    onChange={(e) => setQty(Number(e.target.value) || 1)}
                   />
-                  {ing.name}
-                  {ing.extraPrice > 0 ? ` (+${ing.extraPrice.toFixed(2)} BGN)` : ""}
-                </label>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+                </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={onSubmit}>
-          {isEditMode ? "Save changes" : "Add to cart"}
-        </button>
-        {isEditMode && (
-          <button onClick={onCancel} type="button">
-            Cancel
-          </button>
-        )}
+                <div className={`${styles.field} ${styles.note}`}>
+                  <div className={styles.fieldLabel}>Note</div>
+                  <input
+                    className={styles.input}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Optional note…"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.total}>
+                <div>
+                  <div className={styles.totalLabel}>Total</div>
+                  <div className={styles.itemHint}>Preview price</div>
+                </div>
+                <div className={styles.totalValue}>{totalPrice.toFixed(2)} BGN</div>
+              </div>
+
+              <div className={styles.actions}>
+                <button className={styles.btn} onClick={onSubmit}>
+                  {isEditMode ? "Save changes" : "Add to cart"}
+                </button>
+
+                {isEditMode && (
+                  <button className={`${styles.btn} ${styles.btnGhost}`} onClick={onCancel} type="button">
+                    Cancel
+                  </button>
+                )}
+              </div>
+
+              <div className={styles.tip}>
+                Tip: The cart price is calculated by the server (so it always matches checkout).
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

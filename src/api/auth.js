@@ -31,9 +31,9 @@ export const authApi = {
     }
   },
 
-  async refresh() {
-    const res = await http.post("/auth/refresh");
-    storeAuth(res);
-    return res;
-  },
+  async refresh(opt = {}) {
+  const res = await http.post("/auth/refresh", undefined, { ...opt, skipAuthRefresh: true });
+  storeAuth(res);
+  return res;
+},
 };
