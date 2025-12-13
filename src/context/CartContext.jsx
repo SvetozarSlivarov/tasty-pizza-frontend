@@ -23,11 +23,7 @@ function mapServerCart(data) {
         const unitPrice = Number(it.unitPrice ?? it.price ?? 0);
         const name = it.name ?? it.productName ?? it.pizzaName ?? it.drinkName ?? "Item";
         const imageUrl = it.imageUrl ?? it.photo ?? it.thumbnailUrl ?? null;
-
-        const size = it.size ?? it.variant?.size;
-        const dough = it.dough ?? it.variant?.dough;
-        const variantName = it.variantName ?? it.variant?.name;
-        const variantLabel = variantName || [size, dough].filter(Boolean).join(" · ") || null;
+        const variantLabel = it.variantLabel
 
         const type =
             it.type ??

@@ -22,7 +22,7 @@ export default function CartDrawer() {
     const prevIsOpenRef = useRef(false);
     useEffect(() => {
         if (isOpen && !prevIsOpenRef.current) {
-            Promise.resolve(refreshRef.current?.()).catch(() => {});
+            Promise.resolve(refreshRef.current?.()).catch(() => { });
         }
         prevIsOpenRef.current = isOpen;
     }, [isOpen]);
@@ -46,22 +46,26 @@ export default function CartDrawer() {
                         ]);
                         const map = {};
                         (Array.isArray(base) ? base : []).forEach((x) => {
-                            const id = x?.id ?? x?.ingredientId;
-                            if (id != null) map[id] = x?.name ?? "";
+                            const key = x?.ingredientId;
+                            if (key != null) map[key] = x?.ingredientName ?? "";
                         });
+
                         (Array.isArray(allow) ? allow : []).forEach((x) => {
-                            const id = x?.id ?? x?.ingredientId;
-                            if (id != null) map[id] = x?.name ?? "";
+                            const key = x?.ingredientId;
+                            if (key != null) map[key] = x?.ingredientName ?? "";
                         });
+
                         return [pid, map];
                     })
                 );
+
                 setIngNameCache((prev) => {
                     const next = { ...prev };
                     for (const [pid, map] of entries) next[pid] = map;
                     return next;
                 });
             } catch {
+                // ignore
             }
         })();
     }, [cart.isOpen, cart.items, ingNameCache]);
@@ -92,13 +96,13 @@ export default function CartDrawer() {
         return { display: `${head}, … +${more} more`, title: full };
     };
 
-
     const handleCheckout = async ({ phone, address }) => {
         try {
             await cart.checkout({ phone, address });
             setOpenCheckout(false);
             setShowCelebrate(true);
-        } catch (e){
+        } catch (e) {
+            // ignore here (cart.error will show)
         }
     };
 
@@ -108,6 +112,7 @@ export default function CartDrawer() {
                 className={`cart-backdrop ${cart.isOpen ? "open" : ""}`}
                 onClick={cart.close}
             />
+
             <aside
                 className={`cart-drawer ${cart.isOpen ? "open" : ""}`}
                 aria-hidden={!cart.isOpen}
@@ -131,96 +136,128 @@ export default function CartDrawer() {
 
                     {!cart.loading && cart.items.length > 0 && (
                         <ul className="cart-list">
-                            {cart.items.map((it) => (
-                                <li key={it.id} className="cart-item">
-                                    <div className="ci-media">
-                                        {it.imageUrl ? (
-                                            <img src={it.imageUrl} alt={it.name} />
-                                        ) : (
-                                            <div className="ci-placeholder" aria-hidden />
-                                        )}
-                                    </div>
+                            {cart.items.map((it) => {
+                                const isPizza = it.type === "pizza";
+                                const isDrink = it.type === "drink";
 
-                                    <div className="ci-main">
-                                        <div className="ci-title">
-                                            <strong>{it.name}</strong>
-                                            {it.variantLabel && (
-                                                <span className="muted"> · {it.variantLabel}</span>
+                                const customizationSummary = isPizza ? formatCustomizations(it) : null;
+
+                                return (
+                                    <li
+                                        key={it.id}
+                                        className={`cart-item ${isPizza ? "item-pizza" : "item-drink"}`}
+                                    >
+                                        <div className="ci-media">
+                                            {it.imageUrl ? (
+                                                <img src={it.imageUrl} alt={it.name} />
+                                            ) : (
+                                                <div className="ci-placeholder" aria-hidden>
+                                                    {isPizza ? "🍕" : "🥤"}
+                                                </div>
                                             )}
                                         </div>
 
-                                        {it.type === "pizza" &&
-                                            Array.isArray(it.customizations) &&
-                                            it.customizations.length > 0 &&
-                                            (() => {
-                                                const summary = formatCustomizations(it);
-                                                return summary ? (
-                                                    <div
-                                                        className="ci-customizations-inline"
-                                                        title={summary.title}
-                                                    >
-                                                        {summary.display}
-                                                    </div>
-                                                ) : null;
-                                            })()}
-
-                                        <div className="ci-meta">
-                                            <div className="qty">
-                                                <button
-                                                    className="icon-btn"
-                                                    onClick={() => cart.updateQty(it.id, it.qty - 1)}
-                                                    aria-label="Decrease"
-                                                >
-                                                    –
-                                                </button>
-                                                <input
-                                                    type="number"
-                                                    min={1}
-                                                    value={it.qty}
-                                                    onChange={(e) =>
-                                                        cart.updateQty(it.id, Number(e.target.value) || 1)
-                                                    }
-                                                    aria-label="Quantity"
-                                                />
-                                                <button
-                                                    className="icon-btn"
-                                                    onClick={() => cart.updateQty(it.id, it.qty + 1)}
-                                                    aria-label="Increase"
-                                                >
-                                                    +
-                                                </button>
-                                            </div>
-                                            <div className="price">
-                                                {(it.unitPrice * it.qty).toFixed(2)} BGN
-                                                <span className="muted per">
-                                                    ({it.unitPrice.toFixed(2)} ea)
+                                        <div className="ci-main">
+                                            <div className="ci-title">
+                                                <span className={`ci-badge ${isPizza ? "pizza" : "drink"}`}>
+                                                    {isPizza ? "PIZZA" : "DRINK"}
                                                 </span>
+
+                                                <div className="ci-name">
+                                                    <strong className="ci-product-name">{it.name}</strong>
+
+                                                    {it.variantLabel && (
+                                                        <span className="ci-variant">
+                                                            {it.variantLabel}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Pizza-only customizations */}
+                                            {isPizza && customizationSummary && (
+                                                <div
+                                                    className="ci-customizations-inline"
+                                                    title={customizationSummary.title}
+                                                >
+                                                    {customizationSummary.display}
+                                                </div>
+                                            )}
+
+                                            {/* Drink-only small hint (optional) */}
+                                            {isDrink && (
+                                                <div className="ci-customizations-inline muted">
+                                                    No options
+                                                </div>
+                                            )}
+
+                                            <div className="ci-meta">
+                                                <div className="qty">
+                                                    <button
+                                                        className="icon-btn"
+                                                        onClick={() => cart.updateQty(it.id, it.qty - 1)}
+                                                        aria-label="Decrease"
+                                                        disabled={it.qty <= 1}
+                                                        title="Decrease"
+                                                    >
+                                                        –
+                                                    </button>
+
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        value={it.qty}
+                                                        onChange={(e) =>
+                                                            cart.updateQty(it.id, Number(e.target.value) || 1)
+                                                        }
+                                                        aria-label="Quantity"
+                                                    />
+
+                                                    <button
+                                                        className="icon-btn"
+                                                        onClick={() => cart.updateQty(it.id, it.qty + 1)}
+                                                        aria-label="Increase"
+                                                        title="Increase"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+
+                                                <div className="price">
+                                                    {(it.unitPrice * it.qty).toFixed(2)} BGN
+                                                    <span className="muted per">
+                                                        ({it.unitPrice.toFixed(2)} ea)
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="ci-actions">
-                                        {it.type === "pizza" && it.productId != null && (
-                                            <Link
-                                                to={`/pizza/${it.productId}?editItemId=${it.id}`}
+                                        <div className="ci-actions">
+                                            {isPizza && it.productId != null && (
+                                                <Link
+                                                    to={`/pizza/${it.productId}?editItemId=${it.id}`}
+                                                    className="icon-btn"
+                                                    onClick={cart.close}
+                                                    aria-label="Edit pizza"
+                                                    title="Edit"
+                                                    style={{ marginRight: 8 }}
+                                                >
+                                                    ✏️
+                                                </Link>
+                                            )}
+
+                                            <button
                                                 className="icon-btn"
-                                                onClick={cart.close}
-                                                aria-label="Edit"
-                                                style={{ marginRight: 8 }}
+                                                onClick={() => cart.remove(it.id)}
+                                                aria-label="Remove item"
+                                                title="Remove"
                                             >
-                                                ✏️
-                                            </Link>
-                                        )}
-                                        <button
-                                            className="icon-btn"
-                                            onClick={() => cart.remove(it.id)}
-                                            aria-label="Remove"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </li>
-                            ))}
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </div>
