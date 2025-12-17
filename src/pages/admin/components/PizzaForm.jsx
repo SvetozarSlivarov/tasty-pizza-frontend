@@ -1,333 +1,561 @@
-import { useMemo, useState } from "react";
-import styles from "../../../styles/Pizzas.module.css";
+import { useEffect, useMemo, useState } from "react";
+import { adminApi } from "../../../api/admin";
+import { fileToBase64 } from "../../../utils/fileToBase64";
+import styles from "./PizzaForm.module.css";
 
-export const DEFAULT_VARIANT = { size: "medium", dough: "classic", extraPrice: 0 };
+const SPICY_LEVELS = ["MILD", "MEDIUM", "HOT"];
 
-export function hasValidVariants(variants) {
-    const arr = Array.isArray(variants) ? variants : [];
-    if (arr.length < 1) return false;
-    return arr.every((v) => v?.size && v?.dough && Number.isFinite(v?.extraPrice ?? 0));
-}
+const PIZZA_SIZES = ["SMALL", "MEDIUM", "LARGE"];
+const DOUGH_TYPES = ["THIN", "CLASSIC", "WHOLEGRAIN"];
+
+const DEFAULT_VARIANT = { size: "MEDIUM", dough: "CLASSIC", extraPrice: "0.00" };
 
 export function normalizePizza(p) {
-    const variants = Array.isArray(p?.variants) ? p.variants : [];
-    return {
-        name: p?.name ?? "",
-        basePrice: typeof p?.basePrice === "number" ? p.basePrice : 0,
-        isAvailable: p?.isAvailable ?? true,
-        description: p?.description ?? "",
-        spicyLevel: p?.spicyLevel ?? "mild",
-        imageUrl: p?.imageUrl ?? null,
-        variants: variants.map((v) => ({
-            size: v?.size ?? "",
-            dough: v?.dough ?? "",
-            extraPrice: typeof v?.extraPrice === "number" ? v.extraPrice : 0,
-        })),
-    };
+  const x = p || {};
+  const variants = Array.isArray(x.variants) ? x.variants : [];
+
+  return {
+    name: x.name ?? "",
+    description: x.description ?? "",
+    basePrice: x.basePrice != null ? String(x.basePrice) : "",
+    spicyLevel: x.spicyLevel ?? "MILD",
+    variants: variants.length
+      ? variants.map((v) => ({
+          size: v.size ?? DEFAULT_VARIANT.size,
+          dough: v.dough ?? DEFAULT_VARIANT.dough,
+          extraPrice: v.extraPrice != null ? String(v.extraPrice) : "0.00",
+        }))
+      : [{ ...DEFAULT_VARIANT }],
+  };
 }
 
-const PRICE_MIN = 0.01;
-const PRICE_MAX = 1000;
-const EXTRA_MIN = 0;
-const EXTRA_MAX = 100;
-const DESC_MAX = 400;
-const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-const SPICY_VALUES = new Set(["mild", "medium", "hot"]);
+function moneyString(v) {
+  const s = String(v ?? "").trim().replace(",", ".");
+  if (s === "") return "0.00";
+  const n = Number(s);
+  if (!Number.isFinite(n) || n < 0) return "0.00";
+  return n.toFixed(2);
+}
+
+function ensureAtLeastOneVariant(vs) {
+  const arr = Array.isArray(vs) ? vs : [];
+  return arr.length ? arr : [{ ...DEFAULT_VARIANT }];
+}
 
 export default function PizzaForm({
-                                      initial,
-                                      onSubmit,
-                                      onCancel,
-                                      busy,
-                                      showImagePicker = false,
-                                  }) {
-    const [form, setForm] = useState(() => {
-        const base = normalizePizza(initial ?? {});
-        const has = Array.isArray(base.variants) && base.variants.length > 0;
-        return { ...base, variants: has ? base.variants : [DEFAULT_VARIANT] };
+  mode = "create",
+  pizzaId = null,
+  initial = null,
+  busy = false,
+  onCancel,
+  onSubmit,
+}) {
+  const init = useMemo(() => normalizePizza(initial), [initial]);
+
+  const [values, setValues] = useState(init);
+  const [imageFile, setImageFile] = useState(null);
+
+  const [catalog, setCatalog] = useState([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+
+  const [baseSel, setBaseSel] = useState(new Map());
+
+  const [allowedSel, setAllowedSel] = useState(new Map());
+
+  const [q, setQ] = useState("");
+
+  const [loadErr, setLoadErr] = useState(null);
+  const [submitErr, setSubmitErr] = useState(null);
+
+  useEffect(() => {
+    setValues(init);
+    setImageFile(null);
+    setSubmitErr(null);
+  }, [init]);
+
+  const filteredCatalog = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return catalog;
+
+    return catalog.filter((ing) => {
+      const name = String(ing.name || "").toLowerCase();
+      const type = String(ing.typeName || "").toLowerCase();
+      return name.includes(s) || type.includes(s);
     });
+  }, [catalog, q]);
 
-    const [imageFile, setImageFile] = useState(null);
-    const [errors, setErrors] = useState({});
+  useEffect(() => {
+    (async () => {
+      setLoadErr(null);
+      setLoadingCatalog(true);
+      try {
+        const list = await adminApi.listIngredientsWithType("active");
 
-    function setField(k, v) {
-        setForm((m) => ({ ...m, [k]: v }));
-    }
+        const active = Array.isArray(list)
+          ? list.filter((x) => !x.deleted && !x.deletedAt)
+          : [];
 
-    function validate(next = form) {
-        const e = {};
-
-
-        const name = String(next.name || "").trim();
-        if (name.length < 2) e.name = "Name must be at least 2 characters.";
-        else if (name.length > 60) e.name = "Name cannot exceed 60 characters.";
-
-        const bp = Number(next.basePrice);
-        if (!Number.isFinite(bp)) e.basePrice = "Base price must be a number.";
-        else if (bp < PRICE_MIN) e.basePrice = "Base price cannot be negative.";
-        else if (bp > PRICE_MAX) e.basePrice = `Base price cannot exceed ${PRICE_MAX.toFixed(2)}.`;
-
-        if (!SPICY_VALUES.has(String(next.spicyLevel))) {
-            e.spicyLevel = "Invalid spicy level.";
-        }
-
-        if (next.description && String(next.description).length > DESC_MAX) {
-            e.description = `Description is too long (max ${DESC_MAX} characters).`;
-        }
-
-        const variants = Array.isArray(next.variants) ? next.variants : [];
-        if (variants.length < 1) {
-            e.variants = "At least one variant is required.";
-        } else {
-            const bad = [];
-            variants.forEach((vr, i) => {
-                const sizeOk = !!vr?.size;
-                const doughOk = !!vr?.dough;
-                const ex = Number(vr?.extraPrice ?? 0);
-                const priceOk = Number.isFinite(ex) && ex >= EXTRA_MIN && ex <= EXTRA_MAX;
-                if (!sizeOk || !doughOk || !priceOk) bad.push(i);
-            });
-            if (bad.length) {
-                e.variants = "Each variant needs size, dough and extra price between 0.00 and 100.00.";
-            }
-        }
-
-        if (showImagePicker && imageFile) {
-            if (!/^image\//.test(imageFile.type)) e.image = "Only image files are allowed.";
-            if (imageFile.size > IMAGE_MAX_BYTES) e.image = "Image must be ≤ 5MB.";
-        }
-
-        setErrors(e);
-        return e;
-    }
-
-    const canSave = useMemo(() => {
-        const e = validate(form);
-        return Object.keys(e).length === 0;
-        // eslint-disable-next-line
-    }, [form, imageFile]);
-
-    function onBasePriceChange(raw) {
-        const val = raw.replace(",", ".");
-        setField("basePrice", val);
-    }
-    function onBasePriceBlur() {
-        const n = Number(form.basePrice);
-        if (!Number.isFinite(n)) return;
-        const bounded = Math.min(Math.max(n, PRICE_MIN), PRICE_MAX);
-        setField("basePrice", Number(bounded.toFixed(2)));
-    }
-
-    const addVariant = () =>
-        setForm((v) => ({ ...v, variants: [...v.variants, { ...DEFAULT_VARIANT }] }));
-
-    const updateVariant = (i, patch) =>
-        setForm((v) => ({
-            ...v,
-            variants: v.variants.map((it, idx) => (idx === i ? { ...it, ...patch } : it)),
+        const normalized = active.map((x) => ({
+          ...x,
+          typeId: x?.type?.id ?? null,
+          typeName: x?.type?.name ?? "",
         }));
 
-    const removeVariant = (i) =>
-        setForm((v) => {
-            const next = v.variants.filter((_, idx) => idx !== i);
-            return { ...v, variants: next.length ? next : [DEFAULT_VARIANT] };
-        });
+        setCatalog(normalized);
 
-    function onExtraChange(i, raw) {
-        const val = raw.replace(",", ".");
-        const num = Number(val);
-        updateVariant(i, {
-            extraPrice: Number.isFinite(num) ? num : val,
-        });
+        if (mode === "edit" && pizzaId) {
+          const base = await adminApi.getPizzaIngredients(pizzaId);
+          const allowed = await adminApi.getPizzaAllowedIngredients(pizzaId);
+
+          const bMap = new Map();
+          (Array.isArray(base) ? base : []).forEach((it) => {
+            bMap.set(it.ingredientId, { removable: Boolean(it.removable) });
+          });
+          setBaseSel(bMap);
+
+          const aMap = new Map();
+          (Array.isArray(allowed) ? allowed : []).forEach((it) => {
+            aMap.set(it.ingredientId, { extraPrice: moneyString(it.extraPrice) });
+          });
+          setAllowedSel(aMap);
+        } else {
+          setBaseSel(new Map());
+          setAllowedSel(new Map());
+        }
+      } catch (e) {
+        setLoadErr(e?.message || "Failed to load ingredients");
+      } finally {
+        setLoadingCatalog(false);
+      }
+    })();
+  }, [mode, pizzaId]);
+
+  function setField(name, value) {
+    setValues((v) => ({ ...v, [name]: value }));
+  }
+
+  function addVariant() {
+    setValues((v) => ({
+      ...v,
+      variants: [...ensureAtLeastOneVariant(v.variants), { ...DEFAULT_VARIANT }],
+    }));
+  }
+
+  function removeVariant(idx) {
+    setValues((v) => {
+      const cur = ensureAtLeastOneVariant(v.variants);
+      const next = cur.filter((_, i) => i !== idx);
+      return { ...v, variants: next.length ? next : [{ ...DEFAULT_VARIANT }] };
+    });
+  }
+
+  function updateVariant(idx, patch) {
+    setValues((v) => {
+      const cur = ensureAtLeastOneVariant(v.variants);
+      const next = cur.map((it, i) => (i === idx ? { ...it, ...patch } : it));
+      return { ...v, variants: next };
+    });
+  }
+
+  function toggleBase(id) {
+    setBaseSel((prev) => {
+      const next = new Map(prev);
+      if (next.has(id)) next.delete(id);
+      else next.set(id, { removable: false });
+      return next;
+    });
+  }
+
+  function toggleRemovable(id) {
+    setBaseSel((prev) => {
+      const next = new Map(prev);
+      const cur = next.get(id);
+      if (!cur) return next;
+      next.set(id, { ...cur, removable: !cur.removable });
+      return next;
+    });
+  }
+
+  function toggleAllowed(id) {
+    setAllowedSel((prev) => {
+      const next = new Map(prev);
+      if (next.has(id)) next.delete(id);
+      else next.set(id, { extraPrice: "0.00" });
+      return next;
+    });
+  }
+
+  function setAllowedPrice(id, price) {
+    setAllowedSel((prev) => {
+      const next = new Map(prev);
+      const cur = next.get(id);
+      if (!cur) return next;
+      next.set(id, { ...cur, extraPrice: price });
+      return next;
+    });
+  }
+
+  function validate() {
+    if (!values.name.trim()) return "Name is required";
+    if (!values.basePrice.trim()) return "Base price is required";
+
+    const n = Number(values.basePrice.replace(",", "."));
+    if (!Number.isFinite(n) || n < 0) return "Base price must be a valid non-negative number";
+
+    if (!values.spicyLevel) return "Spicy level is required";
+
+    const variants = ensureAtLeastOneVariant(values.variants);
+    for (const v of variants) {
+      if (!v.size) return "Variant size is required";
+      if (!v.dough) return "Variant dough is required";
+      const ep = Number(String(v.extraPrice ?? "").replace(",", "."));
+      if (!Number.isFinite(ep) || ep < 0) return "Variant extraPrice must be a valid non-negative number";
     }
-    function onExtraBlur(i) {
-        const n = Number(form.variants[i]?.extraPrice);
-        if (!Number.isFinite(n)) return updateVariant(i, { extraPrice: 0 });
-        const bounded = Math.min(Math.max(n, EXTRA_MIN), EXTRA_MAX);
-        updateVariant(i, { extraPrice: Number(bounded.toFixed(2)) });
+
+    return null;
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSubmitErr(null);
+
+    const vErr = validate();
+    if (vErr) {
+      setSubmitErr(vErr);
+      return;
     }
 
-    function onImagePick(file) {
-        setImageFile(file || null);
-        setTimeout(() => validate(form), 0);
+    const variants = ensureAtLeastOneVariant(values.variants).map((v) => ({
+      size: v.size,
+      dough: v.dough,
+      extraPrice: moneyString(v.extraPrice),
+    }));
+
+    const ingredients = Array.from(baseSel.entries()).map(([ingredientId, v]) => ({
+      ingredientId,
+      removable: Boolean(v.removable),
+    }));
+
+    const allowedIngredients = Array.from(allowedSel.entries()).map(([ingredientId, v]) => ({
+      ingredientId,
+      extraPrice: moneyString(v.extraPrice),
+    }));
+
+    let req = {
+      name: values.name.trim(),
+      description: values.description?.trim() || "",
+      basePrice: String(values.basePrice).trim().replace(",", "."),
+      spicyLevel: values.spicyLevel || "MILD",
+
+      variants,
+      ingredients,
+      allowedIngredients,
+    };
+
+    if (imageFile) {
+      if (!/^image\//.test(imageFile.type)) {
+        setSubmitErr("Only images are allowed");
+        return;
+      }
+      if (imageFile.size > 5 * 1024 * 1024) {
+        setSubmitErr("Max size is 5MB");
+        return;
+      }
+      const { base64 } = await fileToBase64(imageFile);
+      req = { ...req, imageBase64: base64 };
     }
 
-    function submit(e) {
-        e.preventDefault();
-        const eMap = validate(form);
-        if (Object.keys(eMap).length > 0) return;
+    try {
+      const res = await onSubmit(req);
 
-        const payload = {
-            name: String(form.name).trim(),
-            basePrice: Number(form.basePrice),
-            isAvailable: !!form.isAvailable,
-            description: form.description || "",
-            spicyLevel: form.spicyLevel,
-            imageUrl: form.imageUrl ?? null,
-            variants: (form.variants ?? []).map(({ size, dough, extraPrice }) => ({
-                size,
-                dough,
-                extraPrice: Number(extraPrice) || 0,
-            })),
-        };
-        onSubmit?.(payload, imageFile);
+      const id = (mode === "edit" ? pizzaId : res?.id) || null;
+      if (id) {
+        await adminApi.setPizzaIngredients(id, ingredients);
+        await adminApi.setPizzaAllowedIngredients(id, allowedIngredients);
+      }
+    } catch (e2) {
+      setSubmitErr(e2?.message || "Submit failed");
     }
+  }
 
-    return (
-        <form className={styles.form} onSubmit={submit}>
-            <div className={styles.field}>
-                <label>Name</label>
-                <input
-                    className={styles.input}
-                    value={form.name}
-                    onChange={(e) => setField("name", e.target.value)}
-                    required
-                />
-                {errors.name && <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.name}</div>}
-            </div>
+  const variantsNow = ensureAtLeastOneVariant(values.variants);
+  const disableAll = busy || loadingCatalog;
 
-            <div className={styles.field}>
-                <label>Base price</label>
-                <input
-                    type="text"
-                    inputMode="decimal"
-                    className={styles.input}
-                    value={String(form.basePrice)}
-                    onChange={(e) => onBasePriceChange(e.target.value)}
-                    onBlur={onBasePriceBlur}
-                    required
-                />
-                {errors.basePrice && <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.basePrice}</div>}
-                <div className={styles.note}>Allowed: {PRICE_MIN.toFixed(2)}–{PRICE_MAX.toFixed(2)}</div>
-            </div>
+  return (
+    <form className={styles.form} onSubmit={handleSubmit}>
+      {submitErr && <div className={styles.error}>{submitErr}</div>}
+      {loadErr && <div className={styles.error}>{loadErr}</div>}
 
-            <div className={styles.row}>
-                <input
-                    id="available"
-                    type="checkbox"
-                    className={styles.checkbox}
-                    checked={!!form.isAvailable}
-                    onChange={(e) => setField("isAvailable", e.target.checked)}
-                />
-                <label htmlFor="available">Available</label>
-            </div>
+      <div className={styles.grid2}>
+        <div className={styles.field}>
+          <label className={styles.label}>Name</label>
+          <input
+            className={styles.input}
+            value={values.name}
+            onChange={(e) => setField("name", e.target.value)}
+            disabled={disableAll}
+          />
+        </div>
 
-            <div className={styles.field}>
-                <label>Spicy level</label>
-                <select
-                    className={styles.select}
-                    value={form.spicyLevel}
-                    onChange={(e) => setField("spicyLevel", e.target.value)}
-                >
-                    <option value="mild">mild</option>
-                    <option value="medium">medium</option>
-                    <option value="hot">hot</option>
-                </select>
-                {errors.spicyLevel && <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.spicyLevel}</div>}
-            </div>
+        <div className={styles.field}>
+          <label className={styles.label}>Spicy level</label>
+          <select
+            className={styles.input}
+            value={values.spicyLevel || "MILD"}
+            onChange={(e) => setField("spicyLevel", e.target.value)}
+            disabled={disableAll}
+          >
+            {SPICY_LEVELS.map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </select>
+        </div>
 
-            <div className={styles.field}>
-                <label>Description (optional)</label>
-                <textarea
-                    className={styles.textarea}
-                    rows={3}
-                    value={form.description || ""}
-                    onChange={(e) => setField("description", e.target.value)}
-                />
-                {errors.description && <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.description}</div>}
-            </div>
+        <div className={styles.field}>
+          <label className={styles.label}>Base price</label>
+          <input
+            className={styles.input}
+            inputMode="decimal"
+            value={values.basePrice}
+            onChange={(e) => setField("basePrice", e.target.value)}
+            disabled={disableAll}
+          />
+        </div>
 
-            {form.imageUrl && (
-                <div className={styles.field}>
-                    <label>Current image</label>
-                    <img src={form.imageUrl} alt="pizza" className={styles.img} />
-                </div>
-            )}
+        <div className={styles.field}>
+          <label className={styles.label}>Image (optional)</label>
+          <input
+            className={styles.inputFile}
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+            disabled={disableAll}
+          />
+          {imageFile && <div className={styles.hint}>Selected: {imageFile.name}</div>}
+        </div>
 
-            <div className={styles.field}>
-                <label>Variants</label>
-                <div className={styles.variants}>
-                    {(form.variants ?? []).map((vr, i) => (
-                        <div key={i} className={styles.variantRow}>
-                            <select
-                                className={styles.variantInput}
-                                value={vr.size}
-                                onChange={(e) => updateVariant(i, { size: e.target.value })}
-                            >
-                                <option value="">Size…</option>
-                                <option value="small">small</option>
-                                <option value="medium">medium</option>
-                                <option value="large">large</option>
-                            </select>
+        <div className={styles.fieldFull}>
+          <label className={styles.label}>Description</label>
+          <textarea
+            className={styles.textarea}
+            value={values.description}
+            onChange={(e) => setField("description", e.target.value)}
+            disabled={disableAll}
+          />
+        </div>
+      </div>
 
-                            <select
-                                className={styles.variantInput}
-                                value={vr.dough}
-                                onChange={(e) => updateVariant(i, { dough: e.target.value })}
-                            >
-                                <option value="">Dough…</option>
-                                <option value="thin">thin</option>
-                                <option value="classic">classic</option>
-                                <option value="wholegrain">wholegrain</option>
-                            </select>
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTitle}>Variants</div>
+          <button type="button" className={styles.btnSmall} onClick={addVariant} disabled={disableAll}>
+            + Add variant
+          </button>
+        </div>
 
-                            <input
-                                className={styles.variantInput}
-                                type="text"
-                                inputMode="decimal"
-                                placeholder="Extra price"
-                                value={String(vr.extraPrice ?? 0)}
-                                onChange={(e) => onExtraChange(i, e.target.value)}
-                                onBlur={() => onExtraBlur(i)}
-                            />
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th className={styles.th}>Size</th>
+                <th className={styles.th}>Dough</th>
+                <th className={styles.thSmall}>Extra price</th>
+                <th className={styles.thSmall}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {variantsNow.map((v, idx) => (
+                <tr key={idx}>
+                  <td className={styles.td}>
+                    <select
+                      className={styles.input}
+                      value={v.size}
+                      onChange={(e) => updateVariant(idx, { size: e.target.value })}
+                      disabled={disableAll}
+                    >
+                      {PIZZA_SIZES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
 
-                            <button
-                                type="button"
-                                className={`${styles.btn} ${styles.btnDanger}`}
-                                onClick={() => removeVariant(i)}
-                            >
-                                Remove
-                            </button>
-                        </div>
-                    ))}
+                  <td className={styles.td}>
+                    <select
+                      className={styles.input}
+                      value={v.dough}
+                      onChange={(e) => updateVariant(idx, { dough: e.target.value })}
+                      disabled={disableAll}
+                    >
+                      {DOUGH_TYPES.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
 
-                    <div className={styles.row}>
-                        <button type="button" className={styles.btn} onClick={addVariant}>
-                            + Add variant
-                        </button>
-                        <button
-                            type="button"
-                            className={styles.btn}
-                            onClick={() => setForm((v) => ({ ...v, variants: [{ ...DEFAULT_VARIANT }] }))}
-                            title="Reset variants to default"
-                        >
-                            Reset to default (medium/classic)
-                        </button>
-                    </div>
+                  <td className={styles.tdCenter}>
+                    <input
+                      className={styles.price}
+                      value={String(v.extraPrice ?? "0.00")}
+                      onChange={(e) => updateVariant(idx, { extraPrice: e.target.value })}
+                      disabled={disableAll}
+                      inputMode="decimal"
+                    />
+                  </td>
 
-                    {errors.variants && (
-                        <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.variants}</div>
-                    )}
-                </div>
-            </div>
+                  <td className={styles.tdCenter}>
+                    <button
+                      type="button"
+                      className={styles.btnSmall}
+                      onClick={() => removeVariant(idx)}
+                      disabled={disableAll || variantsNow.length === 1}
+                      title="At least one variant is required"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-            {showImagePicker && (
-                <div className={styles.field}>
-                    <label>Image (optional)</label>
-                    <input type="file" accept="image/*" onChange={(e) => onImagePick(e.target.files?.[0] || null)} />
-                    {errors.image && <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.image}</div>}
-                    <div className={styles.note}>If provided, it will upload right after save (max 5MB).</div>
-                </div>
-            )}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTitle}>Ingredients</div>
+          <input
+            className={styles.search}
+            placeholder="Search ingredients (name or type)…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            disabled={disableAll}
+          />
+        </div>
 
-            <div className={styles.row}>
-                <button className={`${styles.btn} ${styles.btnPrimary}`} type="submit" disabled={busy || !canSave}>
-                    {busy ? "Saving..." : "Save"}
-                </button>
-                <button className={styles.btn} type="button" onClick={onCancel} disabled={busy}>
-                    Cancel
-                </button>
-            </div>
-        </form>
-    );
+        <div className={styles.subTitle}>Base ingredients</div>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th className={styles.thSmall}>Use</th>
+                <th className={styles.th}>Ingredient</th>
+                <th className={styles.thSmall}>Removable</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCatalog.map((ing) => {
+                const selected = baseSel.has(ing.id);
+                const removable = selected ? Boolean(baseSel.get(ing.id)?.removable) : false;
+
+                return (
+                  <tr key={ing.id}>
+                    <td className={styles.tdCenter}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleBase(ing.id)}
+                        disabled={disableAll}
+                      />
+                    </td>
+
+                    <td className={styles.td}>
+                      <div>{ing.name}</div>
+                      <div className={styles.typeHint}>{ing.typeName}</div>
+                    </td>
+
+                    <td className={styles.tdCenter}>
+                      <input
+                        type="checkbox"
+                        checked={removable}
+                        onChange={() => toggleRemovable(ing.id)}
+                        disabled={disableAll || !selected}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+              {!filteredCatalog.length && (
+                <tr>
+                  <td className={styles.td} colSpan={3}>
+                    No matches.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className={styles.subTitle} style={{ marginTop: 12 }}>
+          Allowed ingredients
+        </div>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th className={styles.thSmall}>Allow</th>
+                <th className={styles.th}>Ingredient</th>
+                <th className={styles.thSmall}>Extra price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCatalog.map((ing) => {
+                const selected = allowedSel.has(ing.id);
+                const extraPrice = selected ? String(allowedSel.get(ing.id)?.extraPrice ?? "0.00") : "0.00";
+
+                return (
+                  <tr key={ing.id}>
+                    <td className={styles.tdCenter}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleAllowed(ing.id)}
+                        disabled={disableAll}
+                      />
+                    </td>
+
+                    <td className={styles.td}>
+                      <div>{ing.name}</div>
+                      <div className={styles.typeHint}>{ing.typeName}</div>
+                    </td>
+
+                    <td className={styles.tdCenter}>
+                      <input
+                        className={styles.price}
+                        value={extraPrice}
+                        onChange={(e) => setAllowedPrice(ing.id, e.target.value)}
+                        disabled={disableAll || !selected}
+                        inputMode="decimal"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+              {!filteredCatalog.length && (
+                <tr>
+                  <td className={styles.td} colSpan={3}>
+                    No matches.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div className={styles.actions}>
+        <button type="button" className={styles.btn} onClick={onCancel} disabled={busy}>
+          Cancel
+        </button>
+        <button type="submit" className={styles.btnPrimary} disabled={busy}>
+          {mode === "edit" ? "Save" : "Create"}
+        </button>
+      </div>
+    </form>
+  );
 }

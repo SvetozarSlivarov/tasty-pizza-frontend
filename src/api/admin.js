@@ -1,84 +1,62 @@
 import { http } from "./http";
 
-const PIZZAS = "/api/pizzas";
-const DRINKS = "/api/drinks";
-const INGREDIENTS = "/api/ingredients";
-const INGREDIENT_TYPES = "/api/ingredient-types";
-const USERS = "/users";
-const HEALTH = "/health";
-
 export const adminApi = {
-    // Health
-    health: () => http.get(HEALTH),
+  // ---- PIZZAS ----
+  async listPizzas({ withVariants = true } = {}) {
+    const qs = new URLSearchParams();
+    qs.set("withVariants", String(withVariants));
+    return http.get(`/pizzas?${qs.toString()}`);
+  },
+  async listDeletedPizzas({ withVariants = true } = {}) {
+    const qs = new URLSearchParams();
+    qs.set("withVariants", String(withVariants));
+    return http.get(`/pizzas/deleted?${qs.toString()}`);
+  },
 
-    // Pizzas
-    listPizzas: (withVariants = false, all = true) =>
-        http.get(`${PIZZAS}?withVariants=${withVariants ? "true" : "false"}&all=${all ? "true" : "false"}`),
-    getPizza: (id, withVariants = true) =>
-        http.get(`/api/pizzas/${id}?withVariants=${withVariants ? "true" : "false"}`),
+  async getPizza(id) {
+    return http.get(`/pizzas/${id}`);
+  },
 
-    createPizza: (payload) => http.post(PIZZAS, payload),
-    updatePizza: (id, payload) => http.patch(`${PIZZAS}/${id}`, payload),
-    deletePizza: (id) => http.del(`${PIZZAS}/${id}`),
+  async createPizza(payload) {
+    return http.post(`/pizzas`, payload);
+  },
 
-    uploadPizzaImageBase64: (id, { filename, contentType, dataBase64 }) =>
-        http.post(`${PIZZAS}/${id}/image`, { filename, contentType, dataBase64 }),
+  async updatePizza(id, payload) {
+    return http.put(`/pizzas/${id}`, payload);
+  },
 
-    // Drinks
-    listDrinks: (all = true) => http.get(`/api/drinks?availableOnly=${all ? "false" : "true"}`),
-    createDrink: (payload) => http.post("/api/drinks", payload),
-    updateDrink: (id, payload) => http.patch(`/api/drinks/${id}`, payload),
-    uploadDrinkImageBase64: (id, { filename, contentType, dataBase64 }) =>
-        http.post(`${DRINKS}/${id}/image`, { filename, contentType, dataBase64 }),
+  async deletePizza(id) {
+    return http.del(`/pizzas/${id}`);
+  },
 
+  async restorePizza(id) {
+    return http.post(`/pizzas/${id}/restore`);
+  },
 
-    // Ingredients
-    listIngredients: () => http.get(INGREDIENTS),
-    createIngredient: (payload) => http.post(INGREDIENTS, payload),
-    updateIngredient: (id, payload) => http.patch(`${INGREDIENTS}/${id}`, payload),
-    deleteIngredient: (id) => http.del(`${INGREDIENTS}/${id}`),
-    restoreIngredient: (id) => http.patch(`${INGREDIENTS}/${id}/restore`),
+  // ---- INGREDIENTS (WITH TYPE) ----
+  async listIngredientsWithType(show = "active") {
+    const qs = new URLSearchParams();
+    if (show) qs.set("show", show); // active|all|deleted
+    return http.get(`/ingredients/with-type?${qs.toString()}`);
+  },
 
+  // ---- PIZZA BASE INGREDIENTS ----
+  async getPizzaIngredients(pizzaId) {
+    return http.get(`/pizzas/${pizzaId}/ingredients`);
+  },
 
-    // Ingredient types
-    listIngredientTypes: () => http.get(INGREDIENT_TYPES),
-    createIngredientType: (payload) => http.post(INGREDIENT_TYPES, payload),
-    updateIngredientType: (id, payload) => http.patch(`${INGREDIENT_TYPES}/${id}`, payload),
+  // body: [{ ingredientId, removable }]
+  async setPizzaIngredients(pizzaId, items) {
+    return http.put(`/pizzas/${pizzaId}/ingredients`, items);
+  },
 
+  // ---- PIZZA ALLOWED INGREDIENTS ----
+  async getPizzaAllowedIngredients(pizzaId) {
+    return http.get(`/pizzas/${pizzaId}/allowed-ingredients`);
+  },
 
-    // Pizza ingredient
-    listPizzaIngredients: (pizzaId) =>
-        http.get(`/api/pizzas/${pizzaId}/ingredients`),
-
-    addPizzaIngredient: (pizzaId, payload) =>
-        http.post(`/api/pizzas/${pizzaId}/ingredients`, payload), // { ingredientId, isRemovable }
-
-    updatePizzaIngredient: (pizzaId, ingredientId, payload) =>
-        http.patch(`/api/pizzas/${pizzaId}/ingredients/${ingredientId}`, payload), // { isRemovable }
-
-    removePizzaIngredient: (pizzaId, ingredientId) =>
-        http.del(`/api/pizzas/${pizzaId}/ingredients/${ingredientId}`),
-
-    // Pizza allowed ingredients
-    listAllowedIngredients: (pizzaId) =>
-        http.get(`/api/pizzas/${pizzaId}/allowed-ingredients`),
-
-    allowIngredientForPizza: (pizzaId, payload) =>
-        http.post(`/api/pizzas/${pizzaId}/allowed-ingredients`, payload),
-
-    disallowIngredientForPizza: (pizzaId, ingredientId) =>
-        http.del(`/api/pizzas/${pizzaId}/allowed-ingredients/${ingredientId}`),
-
-    // Users
-    listUsers: (page = 1, size = 50, q) => {
-        const qs = new URLSearchParams({ page: String(page), size: String(size) });
-        if (q && q.trim()) qs.set("q", q.trim());
-        return http.get(`/api/admin/users?${qs.toString()}`);
-    },
-    updateUserRoleById: (id, role) => http.put(`${USERS}/${id}/role`, { role }),
-    updateUserRoleByUsername: (username, role) =>
-        http.put(`${USERS}/by-username/${encodeURIComponent(username)}/role`, { role }),
-    deleteUserById: (id) => http.del(`${USERS}/${id}`),
-    deleteUserByUsername: (username) =>
-        http.del(`${USERS}/by-username/${encodeURIComponent(username)}`),
+  // body: [{ ingredientId, extraPrice }]
+  async setPizzaAllowedIngredients(pizzaId, items) {
+    return http.put(`/pizzas/${pizzaId}/allowed-ingredients`, items);
+  },
 };

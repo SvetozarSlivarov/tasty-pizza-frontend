@@ -1,0 +1,150 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 70vh;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 0, 0, 0.10);
+  border: 1px solid rgba(255, 0, 0, 0.25);
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.fieldFull { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; }
+
+.label { font-weight: 600; opacity: 0.9; }
+
+.input, .textarea, .price, .search {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  padding: 10px 12px;
+  outline: none;
+}
+
+.textarea { min-height: 90px; resize: vertical; }
+
+.inputFile { width: 100%; }
+
+.hint { font-size: 12px; opacity: 0.8; }
+
+.section {
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 10px;
+  min-width: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.sectionTitle { font-weight: 800; }
+
+.subTitle {
+  font-weight: 700;
+  opacity: 0.9;
+  margin: 6px 0 8px;
+}
+
+.typeHint {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-top: 2px;
+}
+
+.tableWrap {
+  overflow: auto;
+  max-height: 280px;
+  border-radius: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.th, .thSmall {
+  text-align: left;
+  font-size: 12px;
+  opacity: 0.8;
+  padding: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  position: sticky;
+  top: 0;
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(6px);
+}
+
+.thSmall { width: 140px; }
+
+.td, .tdCenter {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  vertical-align: middle;
+}
+
+.tdCenter { text-align: center; }
+
+.price {
+  max-width: 120px;
+  text-align: center;
+  padding: 8px 10px;
+}
+
+.search {
+  width: min(420px, 100%);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.btn, .btnPrimary {
+  border-radius: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+}
+
+.btnPrimary {
+  background: rgba(120, 90, 255, 0.35);
+  border-color: rgba(120, 90, 255, 0.55);
+}
+
+.btnSmall {
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  white-space: nowrap;
+}
