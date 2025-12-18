@@ -1,248 +1,169 @@
-import { useEffect, useState } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { adminOrdersApi, nextActionsForStatus } from "../../api/adminOrders";
-import styles from "../../styles/adminOrders.module.css";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { adminListOrders } from "../../api/adminOrders";
+import styles from "../../styles/Orders.module.css";
 
-const StatusPill = ({ value }) => (
-    <span className={styles.pill + " " + styles["st-" + String(value || "").toLowerCase()]}>
-    {String(value || "").replace(/_/g, " ")}
-  </span>
-);
+const STATUSES = [
+    { value: "all", label: "All" },
+    { value: "ORDERED", label: "Ordered" },
+    { value: "PREPARING", label: "Preparing" },
+    { value: "OUT_FOR_DELIVERY", label: "Out for delivery" },
+    { value: "DELIVERED", label: "Delivered" },
+    { value: "CANCELLED", label: "Cancelled" },
+];
 
-export default function AdminOrders() {
+const fmtDate = (dt) => (dt ? new Date(dt).toLocaleString() : "-");
+const money = (v) => {
+    if (v == null) return "0.00";
+    const n = typeof v === "string" ? Number(v) : v;
+    return Number.isFinite(n) ? n.toFixed(2) : String(v);
+};
+
+function statusClass(status) {
+    switch (status) {
+        case "ORDERED": return `${styles.status} ${styles.statusOrdered}`;
+        case "PREPARING": return `${styles.status} ${styles.statusPreparing}`;
+        case "OUT_FOR_DELIVERY": return `${styles.status} ${styles.statusOut}`;
+        case "DELIVERED": return `${styles.status} ${styles.statusDelivered}`;
+        case "CANCELLED": return `${styles.status} ${styles.statusCancelled}`;
+        default: return styles.status;
+    }
+}
+
+export default function Orders() {
     const navigate = useNavigate();
-    const [params, setParams] = useSearchParams();
-    const [rows, setRows] = useState([]);
-    const [total, setTotal] = useState(0);
+
+    const [status, setStatus] = useState("all");
+    const [q, setQ] = useState("");
+    const [page, setPage] = useState(1);
+    const [size, setSize] = useState(20);
+
     const [loading, setLoading] = useState(false);
+    const [data, setData] = useState({ items: [], total: 0, page: 0, size: 20 });
     const [error, setError] = useState(null);
 
-    const page   = Number(params.get("page")   || 1);
-    const size   = Number(params.get("size")   || 20);
-    const status = params.get("status") || "all";
-    const q      = params.get("q") || "";
-
-    function updateParam(name, val) {
-        const p = new URLSearchParams(params);
-        if (val === null || val === undefined || val === "") p.delete(name);
-        else p.set(name, String(val));
-        setParams(p, { replace: true });
-    }
+    const totalPages = useMemo(() => {
+        const total = data?.total ?? 0;
+        return Math.max(1, Math.ceil(total / size));
+    }, [data, size]);
 
     async function load() {
-        setLoading(true); setError(null);
+        setLoading(true);
+        setError(null);
         try {
-            const res = await adminOrdersApi.list({ status, q, page, size });
-            setRows(res?.items ?? res?.data ?? res?.results ?? []);
-            setTotal(res?.total ?? 0);
+            const res = await adminListOrders({ status, q, page, size });
+            setData(res);
         } catch (e) {
-            setError(e?.message ?? String(e));
+            setError(e?.message || "Failed to load orders");
         } finally {
             setLoading(false);
         }
     }
 
-    useEffect(() => { load(); /* eslint-disable-next-line */ }, [status, q, page, size]);
+    useEffect(() => { load(); }, [status, page, size]); // eslint-disable-line
 
-    const pageCount = Math.max(1, Math.ceil(total / size));
+    function onSearchSubmit(e) {
+        e.preventDefault();
+        setPage(1);
+        load();
+    }
 
     return (
         <div className={styles.page}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>Admin · Orders</h1>
-            </div>
-
-            <div className={styles.toolbar}>
-                <label className={styles.filter}>
-                    <span className={styles.filterLabel}>Status:</span>
-                    <select
-                        className={styles.select}
-                        value={status}
-                        onChange={(e) => updateParam("status", e.target.value)}
-                    >
-                        <option value="all">All</option>
-                        <option value="ordered">ORDERED</option>
-                        <option value="preparing">PREPARING</option>
-                        <option value="out_for_delivery">OUT_FOR_DELIVERY</option>
-                        <option value="delivered">DELIVERED</option>
-                        <option value="cancelled">CANCELLED</option>
-                    </select>
-                </label>
-
-                <input
-                    type="search"
-                    placeholder="Search (username, phone, address, order #)"
-                    value={q}
-                    onChange={(e) => updateParam("q", e.target.value)}
-                    className={styles.search}
-                />
-            </div>
-
-            {error && <div className={styles.error}>⚠ {error}</div>}
-            {loading && <div className={styles.loading}>Loading…</div>}
+            <h2 className={styles.title}>Admin Orders</h2>
 
             <div className={styles.card}>
-                <div className={styles.body}>
-                    <div className={styles.tableWrap}>
-                        <table className={styles.table}>
-                            <thead>
+                <form onSubmit={onSearchSubmit} className={styles.toolbar}>
+                    <select className={styles.select} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+                        {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+
+                    <input
+                        className={styles.input}
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        placeholder="Search by id/username/phone/address"
+                    />
+
+                    <button className={styles.btn} type="submit" disabled={loading}>
+                        {loading ? "Loading..." : "Search"}
+                    </button>
+
+                    <select className={styles.select} value={size} onChange={(e) => { setSize(Number(e.target.value)); setPage(1); }}>
+                        {[10, 20, 50].map(n => <option key={n} value={n}>{n} / page</option>)}
+                    </select>
+                </form>
+
+                {error && <div className={styles.error}>{error}</div>}
+
+                <div className={styles.tableWrap}>
+                    <table className={styles.table} cellPadding="0" cellSpacing="0">
+                        <thead>
                             <tr>
-                                <th className={`${styles.th} ${styles.colId}`}>#</th>
-                                <th className={`${styles.th} ${styles.colStatus}`}>Status</th>
-                                <th className={`${styles.th} ${styles.colTotal}`}>Total</th>
-                                <th className={`${styles.th} ${styles.colItems}`}>Items</th>
-                                <th className={`${styles.th} ${styles.colOrderedAt}`}>Ordered at</th>
-                                <th className={`${styles.th} ${styles.colCustomer}`}>Customer</th>
-                                <th className={`${styles.th} ${styles.colPhone}`}>Phone</th>
-                                <th className={`${styles.th} ${styles.colAddress}`}>Address</th>
-                                <th className={`${styles.th} ${styles.colActions}`}>Actions</th>
+                                <th className={styles.th}>ID</th>
+                                <th className={styles.th}>Status</th>
+                                <th className={`${styles.th} ${styles.right}`}>Items</th>
+                                <th className={`${styles.th} ${styles.right}`}>Total</th>
+                                <th className={styles.th}>Customer</th>
+                                <th className={styles.th}>Phone</th>
+                                <th className={styles.th}>Address</th>
+                                <th className={styles.th}>Created</th>
+                                <th className={styles.th}></th>
                             </tr>
-                            </thead>
-                            <tbody>
-                            {rows?.length === 0 && !loading && (
-                                <tr><td colSpan="9" className={styles.empty}>No orders.</td></tr>
+                        </thead>
+                        <tbody>
+                            {loading && (
+                                <tr><td className={styles.td} colSpan={9}>Loading...</td></tr>
                             )}
 
-                            {rows?.map((r) => {
-                                const go = () => navigate(`/admin/orders/${r.orderId}`);
-                                const onRowKey = (e) => {
-                                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
-                                };
-                                return (
-                                    <tr
-                                        key={r.orderId}
-                                        className={styles.clickableRow}
-                                        onClick={go}
-                                        onKeyDown={onRowKey}
-                                        tabIndex={0}
-                                        role="button"
-                                        aria-label={`Open order ${r.orderNumber ?? r.orderId}`}
-                                    >
-                                        <td className={`${styles.td} ${styles.colId}`}>
-                                            <Link
-                                                to={`/admin/orders/${r.orderId}`}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className={styles.idLink}
-                                            >
-                                                {r.orderNumber ?? r.orderId}
-                                            </Link>
-                                        </td>
-                                        <td className={`${styles.td} ${styles.colStatus}`}><StatusPill value={r.status} /></td>
-                                        <td className={`${styles.td} ${styles.colTotal}`}>{Number(r.total).toFixed(2)} BGN</td>
-                                        <td className={`${styles.td} ${styles.colItems}`}>{r.itemCount}</td>
-                                        <td className={`${styles.td} ${styles.colOrderedAt}`}>{r.orderedAt ? new Date(r.orderedAt).toLocaleString() : "—"}</td>
-                                        <td className={`${styles.td} ${styles.colCustomer}`}>{r.customerUsername ?? "guest"}</td>
-                                        <td className={`${styles.td} ${styles.colPhone}`}>{r.deliveryPhone ?? "—"}</td>
-                                        <td className={`${styles.td} ${styles.colAddress} ${styles.ellipsis}`}>{r.deliveryAddress ?? "—"}</td>
-                                        <td className={`${styles.td} ${styles.colActions}`}>
-                                            <RowActions row={r} onChanged={load} />
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            </tbody>
-                        </table>
-                    </div>
+                            {!loading && (data?.items?.length ?? 0) === 0 && (
+                                <tr><td className={styles.td} colSpan={9}>No orders.</td></tr>
+                            )}
 
-                    <div className={styles.pagination}>
-                        <div className={styles.pageControls}>
-                            <button
-                                className={styles.btn}
-                                disabled={page <= 1}
-                                onClick={() => updateParam("page", 1)}
-                                aria-label="First page"
-                            >
-                                « First
-                            </button>
-                            <button
-                                className={styles.btn}
-                                disabled={page <= 1}
-                                onClick={() => updateParam("page", page - 1)}
-                                aria-label="Previous page"
-                            >
-                                ‹ Prev
-                            </button>
+                            {!loading && data.items.map(o => (
+                                <tr key={o.orderId}>
+                                    <td className={`${styles.td} ${styles.mono}`}>#{o.orderId}</td>
+                                    <td className={styles.td}>
+                                        <span className={statusClass(o.status)}>
+                                            <span className={styles.dot}></span>
+                                            {o.status}
+                                        </span>
+                                    </td>
+                                    <td className={`${styles.td} ${styles.right}`}>{o.itemCount ?? 0}</td>
+                                    <td className={`${styles.td} ${styles.right}`}>{money(o.total)}</td>
+                                    <td className={styles.td}>{o.customerUsername ?? "-"}</td>
+                                    <td className={`${styles.td} ${styles.truncate}`} title={o.deliveryPhone ?? "-"}>
+                                        {o.deliveryPhone ?? "-"}
+                                    </td>
+                                    <td className={`${styles.td} ${styles.truncate}`} title={o.deliveryAddress ?? "-"}>
+                                        {o.deliveryAddress ?? "-"}
+                                    </td>
+                                    <td className={styles.td}>{fmtDate(o.createdAt)}</td>
+                                    <td className={`${styles.td} ${styles.right}`}>
+                                        <button className={styles.pagerBtn} onClick={() => navigate(`/admin/orders/${o.orderId}`)}>
+                                            Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-                            <span className={styles.pageInfo}>Page {page} / {pageCount}</span>
+                <div className={styles.pager}>
+                    <button className={styles.pagerBtn} disabled={loading || page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                        Prev
+                    </button>
 
-                            <button
-                                className={styles.btn}
-                                disabled={page >= pageCount}
-                                onClick={() => updateParam("page", page + 1)}
-                                aria-label="Next page"
-                            >
-                                Next ›
-                            </button>
-                            <button
-                                className={styles.btn}
-                                disabled={page >= pageCount}
-                                onClick={() => updateParam("page", pageCount)}
-                                aria-label="Last page"
-                            >
-                                Last »
-                            </button>
-                        </div>
+                    <span className={styles.mono}>
+                        Page {page} / {totalPages} · Total {data?.total ?? 0}
+                    </span>
 
-                        <label className={styles.pageSize}>
-                            <span>Per page:</span>
-                            <select
-                                className={styles.select}
-                                value={size}
-                                onChange={(e) => updateParam("size", Number(e.target.value))}
-                                aria-label="Page size"
-                            >
-                                <option value="10">10</option>
-                                <option value="20">20</option>
-                                <option value="50">50</option>
-                            </select>
-                        </label>
-                    </div>
+                    <button className={styles.pagerBtn} disabled={loading || page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
+                        Next
+                    </button>
                 </div>
             </div>
         </div>
     );
-}
-
-function RowActions({ row, onChanged }) {
-    const [busy, setBusy] = useState(false);
-
-    async function run(action) {
-        setBusy(true);
-        try {
-            await adminOrdersApi[action](row.orderId);
-            await onChanged();
-        } catch (e) {
-            alert(e?.message ?? String(e));
-        } finally {
-            setBusy(false);
-        }
-    }
-
-    const actions = nextActionsForStatus(row.status);
-    if (actions.length === 0) return <span className={styles.muted}>—</span>;
-
-    return (
-        <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
-            {actions.map((a) => (
-                <button
-                    key={a}
-                    className={styles.btn}
-                    disabled={busy}
-                    onClick={(e) => { e.stopPropagation(); run(a); }}
-                >
-                    {label(a)}
-                </button>
-            ))}
-        </div>
-    );
-}
-
-function label(action) {
-    switch (action) {
-        case "startPreparing": return "Start preparing";
-        case "outForDelivery": return "Out for delivery";
-        case "deliver":        return "Deliver";
-        case "cancel":         return "Cancel";
-        default: return action;
-    }
 }

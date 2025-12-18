@@ -1,21 +1,47 @@
+// src/api/adminOrders.js
 import { http } from "./http";
-export const adminOrdersApi = {
-    list: ({ status = "all", q = "", page = 1, size = 20 } = {}) =>
-        http.get(`api/admin/orders?status=${encodeURIComponent(status)}&q=${encodeURIComponent(q)}&page=${page}&size=${size}`),
-    get: (id) => http.get(`api/admin/orders/${id}`),
-    startPreparing: (id) => http.post(`/api/orders/${id}/start-preparing`, {}),
-    outForDelivery: (id) => http.post(`/api/orders/${id}/out-for-delivery`, {}),
-    deliver:        (id) => http.post(`/api/orders/${id}/deliver`, {}),
-    cancel:         (id) => http.post(`/api/orders/${id}/cancel`, {}),
-};
 
-export function nextActionsForStatus(status) {
-    switch ((status || "").toUpperCase()) {
-        case "ORDERED":           return ["startPreparing", "cancel"];
-        case "PREPARING":         return ["outForDelivery", "cancel"];
-        case "OUT_FOR_DELIVERY":  return ["deliver", "cancel"];
-        case "DELIVERED":         return [];
-        case "CANCELLED":         return [];
-        default:                  return [];
-    }
+function toQuery(params = {}) {
+  const usp = new URLSearchParams();
+
+  Object.entries(params).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
+    usp.set(k, String(v));
+  });
+
+  const qs = usp.toString();
+  return qs ? `?${qs}` : "";
+}
+
+export async function adminListOrders({ status = "all", q = "", page = 1, size = 20 } = {}) {
+  const backendPage = Math.max(0, (page ?? 1) - 1);
+
+  const query = toQuery({
+    status,
+    q: q ?? "",
+    page: backendPage,
+    size,
+  });
+
+  return http.get(`/admin/orders${query}`);
+}
+
+export async function adminGetOrder(id) {
+  return http.get(`/admin/orders/${id}`);
+}
+
+export async function adminStartPreparing(id) {
+  return http.post(`/orders/${id}/start-preparing`);
+}
+
+export async function adminOutForDelivery(id) {
+  return http.post(`/orders/${id}/out-for-delivery`);
+}
+
+export async function adminDeliver(id) {
+  return http.post(`/orders/${id}/deliver`);
+}
+
+export async function adminCancel(id) {
+  return http.post(`/orders/${id}/cancel`);
 }
