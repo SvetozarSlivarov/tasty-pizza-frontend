@@ -32,7 +32,6 @@ function normalizeType(it) {
   if (t === "pizza") return "pizza";
   if (t === "drink") return "drink";
 
-  // fallback guess (older payloads)
   if (it?.pizzaVariantId != null || it?.variantId != null || it?.variant) return "pizza";
   return "drink";
 }
@@ -85,7 +84,6 @@ function mapServerCart(data) {
     };
   });
 
-  // ✅ critical: total from server is often a STRING ("23.50")
   const totalNum = toNum(data?.total, NaN);
   const subtotal = Number.isFinite(totalNum) ? totalNum : items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
 
@@ -212,6 +210,10 @@ export function CartProvider({ children }) {
 
       refresh,
 
+      applyServerCart: (serverCart) => {
+        dispatch({ type: "SET_CART", payload: mapServerCart(serverCart) });
+      },
+
       async addPizza({
         productId,
         variantId = null,
@@ -291,24 +293,25 @@ export function CartProvider({ children }) {
       },
 
       async remove(itemId) {
-        await safe(async () => {
-          const data = await cartApi.removeItem(itemId);
-          dispatch({ type: "SET_CART", payload: mapServerCart(data) });
-          return data;
-        }, { refreshOnError: true });
+        await safe(
+          async () => {
+            const data = await cartApi.removeItem(itemId);
+            dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+            return data;
+          },
+          { refreshOnError: true }
+        );
 
         showSuccess("Item removed.");
       },
 
       async clear() {
-        // няма server endpoint за clear -> remove all items one by one
         const ids = state.items.map((i) => i.id).filter((x) => x != null);
 
         for (const id of ids) {
           try {
             await cartApi.removeItem(id);
           } catch {
-            // ignore (we'll refresh afterwards)
           }
         }
 
@@ -319,28 +322,17 @@ export function CartProvider({ children }) {
       async checkout({ phone, address }) {
         const res = await safe(async () => {
           const data = await cartApi.checkout({ phone, address });
-          // server returns cart (now ORDERED) - refresh anyway to sync
           dispatch({ type: "SET_CART", payload: mapServerCart(data) });
           return data;
         });
 
-        // optional: ensure UI shows empty/new cart after checkout
         await refresh();
 
         showSuccess("Order placed 🎉");
         return res;
       },
     }),
-    [
-      state.isOpen,
-      state.loading,
-      state.error,
-      state.items,
-      state.subtotal,
-      state.orderId,
-      state.status,
-      refresh,
-    ]
+    [state.isOpen, state.loading, state.error, state.items, state.subtotal, state.orderId, state.status, refresh]
   );
 
   return <CartContext.Provider value={api}>{children}</CartContext.Provider>;

@@ -174,14 +174,23 @@ export default function Profile() {
   }, [ordersRaw, status, sort]);
 
   async function handleReorder(orderId) {
-    try {
-      await ordersApi.reorder(orderId);
-      cart?.open?.();
-      cart?.refresh?.();
-    } catch (e) {
-      alert("Reorder failed: " + (e?.message ?? "Error"));
+  try {
+    const res = await ordersApi.reorder(orderId);
+
+    if (res?.cart) {
+      cart?.applyServerCart?.(res.cart);
     }
+
+    cart?.open?.();
+
+    if (res?.skipped > 0) {
+      const msg = Array.isArray(res?.messages) ? res.messages.join("\n") : "Some items were skipped.";
+      alert(msg);
+    }
+  } catch (e) {
+    alert("Reorder failed: " + (e?.message ?? "Error"));
   }
+}
 
   async function toggleStatusHistory(orderId) {
     if (openHistoryFor === orderId) {
@@ -191,7 +200,6 @@ export default function Profile() {
 
     setOpenHistoryFor(orderId);
 
-    // Cached -> no refetch
     if (historyByOrderId.has(orderId)) return;
 
     setHistoryLoadingId(orderId);
@@ -207,7 +215,7 @@ export default function Profile() {
 
       const normalized = list
         .map((x) => ({
-          status: x?.status, // expect enum string
+          status: x?.status,
           changedAt: x?.changedAt ?? x?.changed_at ?? null,
         }))
         .filter((x) => x.status);
@@ -303,8 +311,6 @@ export default function Profile() {
             const historyErr = historyErrByOrderId.get(orderId);
             const isHistoryLoading = historyLoadingId === orderId;
 
-            // Default timeline from current status.
-            // If history panel is open and we have history, use timestamps.
             const timeline = isHistoryOpen && history.length > 0
               ? buildTimelineFromHistory(history)
               : buildTimelineFromCurrentStatus(o.status);

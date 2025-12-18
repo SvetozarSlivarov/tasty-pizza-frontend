@@ -69,6 +69,7 @@
 .btn:disabled { opacity: .55; cursor: not-allowed; }
 
 .btnPrimary {
+    width: 100px;
     background: var(--pz-primary);
     border-color: transparent;
     color: #06101f;

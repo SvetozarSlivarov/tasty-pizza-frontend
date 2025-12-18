@@ -55,8 +55,34 @@ export const adminApi = {
     return http.get(`/pizzas/${pizzaId}/allowed-ingredients`);
   },
 
-  // body: [{ ingredientId, extraPrice }]
   async setPizzaAllowedIngredients(pizzaId, items) {
     return http.put(`/pizzas/${pizzaId}/allowed-ingredients`, items);
+  },
+  async listDrinks() {
+    return http.get(`/drinks`);
+  },
+
+  async listDeletedDrinks() {
+    return http.get(`/drinks/deleted`);
+  },
+
+  async getDrink(id) {
+    return http.get(`/drinks/${id}`);
+  },
+
+  async createDrink(payload) {
+    return http.post(`/drinks`, payload);
+  },
+
+  async updateDrink(id, payload) {
+    return http.put(`/drinks/${id}`, payload);
+  },
+
+  async deleteDrink(id) {
+    return http.del(`/drinks/${id}`);
+  },
+
+  async restoreDrink(id) {
+    return http.post(`/drinks/${id}/restore`);
   },
 };

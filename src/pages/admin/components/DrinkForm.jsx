@@ -5,8 +5,13 @@ export function normalizeDrink(d) {
     return {
         name: d?.name ?? "",
         description: d?.description ?? "",
-        price: typeof d?.price === "number" ? d.price : Number(d?.price) || 0,
-        isAvailable: Boolean(d?.isAvailable ?? true),
+        // Server expects basePrice as a string (e.g. "4.90")
+        basePrice:
+            d?.basePrice != null
+                ? String(d.basePrice)
+                : d?.price != null
+                    ? String(d.price)
+                    : "",
     };
 }
 
@@ -28,15 +33,15 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
         const e = {};
         const name = String(next.name || "").trim();
         if (name.length < 2) e.name = "Name must be at least 2 characters.";
-        if (name.length > 60) e.name = "Name cannot exceed 60 characters.";
+        if (name.length > 100) e.name = "Name cannot exceed 100 characters.";
 
-        const priceNum = Number(next.price);
-        if (!Number.isFinite(priceNum)) e.price = "Price must be a number.";
-        else if (priceNum < PRICE_MIN) e.price = `Price cannot be negative or zero.`;
-        else if (priceNum > PRICE_MAX) e.price = `Price cannot exceed ${PRICE_MAX.toFixed(2)}.`;
+        const priceNum = Number(String(next.basePrice).replace(",", "."));
+        if (!Number.isFinite(priceNum)) e.basePrice = "Price must be a number.";
+        else if (priceNum < PRICE_MIN) e.basePrice = `Price cannot be negative or zero.`;
+        else if (priceNum > PRICE_MAX) e.basePrice = `Price cannot exceed ${PRICE_MAX.toFixed(2)}.`;
 
-        if (next.description && String(next.description).length > 300) {
-            e.description = "Description is too long (max 300 characters).";
+        if (next.description && String(next.description).length > 1000) {
+            e.description = "Description is too long (max 1000 characters).";
         }
 
         if (imageFile) {
@@ -55,14 +60,14 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
     function onPriceChange(raw) {
         const val = raw.replace(",", ".");
         const num = Number(val);
-        update("price", Number.isFinite(num) ? val : "");
+        update("basePrice", Number.isFinite(num) ? val : "");
     }
 
     function onPriceBlur() {
-        const n = Number(model.price);
+        const n = Number(String(model.basePrice).replace(",", "."));
         if (!Number.isFinite(n)) return;
         const bounded = Math.min(Math.max(n, PRICE_MIN), PRICE_MAX);
-        update("price", bounded.toFixed(2));
+        update("basePrice", bounded.toFixed(2));
     }
 
     function onImagePick(file) {
@@ -78,7 +83,7 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
             setBusy(true);
             await onSubmit?.(normalizeDrink({
                 ...model,
-                price: Number(model.price),
+                basePrice: String(model.basePrice).replace(",", "."),
             }), imageFile);
         } finally {
             setBusy(false);
@@ -123,28 +128,17 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
                     className={styles.input}
                     type="text"
                     inputMode="decimal"
-                    value={String(model.price)}
+                    value={String(model.basePrice)}
                     onChange={(e) => onPriceChange(e.target.value)}
                     onBlur={onPriceBlur}
                     placeholder="4.90"
                 />
-                {errors.price && (
-                    <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.price}</div>
+                {errors.basePrice && (
+                    <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.basePrice}</div>
                 )}
                 <div className={styles.note}>
                     Allowed range: {PRICE_MIN.toFixed(2)} – {PRICE_MAX.toFixed(2)} BGN
                 </div>
-            </div>
-
-            {/* Available */}
-            <div className={styles.row}>
-                <label className={styles.label} style={{ margin: 0 }}>Available</label>
-                <input
-                    type="checkbox"
-                    checked={model.isAvailable}
-                    onChange={(e) => update("isAvailable", e.target.checked)}
-                    style={{ marginLeft: 8 }}
-                />
             </div>
 
             {/* Image (optional) */}
@@ -158,7 +152,7 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
                 {errors.image && (
                     <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.image}</div>
                 )}
-                <div className={styles.note}>If provided, it will upload right after save. Max 5MB.</div>
+                <div className={styles.note}>If provided, it will be uploaded together with the drink (max 5MB).</div>
             </div>
 
             {/* Actions */}
