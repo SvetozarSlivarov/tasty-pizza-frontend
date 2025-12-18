@@ -154,14 +154,12 @@
 .btn:disabled { opacity: .5; cursor: default; }
 
 .btnPrimary {
-    composes: btn;
     background: linear-gradient(180deg, #2a6dfd, #1a56db);
     border: 1px solid #1f4fd0;
 }
 .btnPrimary:hover { background: linear-gradient(180deg, #2e76ff, #1a56db); }
 
 .btnSecondary {
-    composes: btn;
     background: #0f1420;
     border: 1px solid #263044;
     text-decoration: none;

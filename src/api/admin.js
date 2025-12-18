@@ -85,4 +85,47 @@ export const adminApi = {
   async restoreDrink(id) {
     return http.post(`/drinks/${id}/restore`);
   },
+
+
+  
+  async listIngredientTypes() {
+    return http.get("/ingredient-type");
+  },
+
+  async createIngredientType(payload) {
+    return http.post("/ingredient-type", payload);
+  },
+
+  async updateIngredientType(id, payload) {
+    return http.put(`/ingredient-type/${id}`, payload);
+  },
+
+  async deleteIngredientType(id) {
+    return http.del(`/ingredient-type/${id}`);
+  },
+
+  async deleteIngredientTypeByName(name) {
+    return http.del("/ingredient-type", { name });
+  },
+
+  // ---------- INGREDIENTS ----------
+  async listIngredientsWithType(show = "all") {
+    return http.get(`/ingredients/with-type?show=${encodeURIComponent(show)}`);
+  },
+
+  async createIngredient(payload) {
+    return http.post("/ingredients", payload);
+  },
+
+  async updateIngredient(id, payload) {
+    return http.put(`/ingredients/${id}`, payload);
+  },
+
+  async deleteIngredient(id) {
+    return http.del(`/ingredients/${id}`);
+  },
+
+  async restoreIngredient(id) {
+    return http.post(`/ingredients/${id}/restore`, {});
+  },
 };

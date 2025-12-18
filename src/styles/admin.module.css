@@ -172,3 +172,157 @@
     .card:hover { transform: none; }
     .pulse { animation: none; }
 }
+/* ================================
+   PATCH: classes needed by Ingredients/Types pages
+   (append only; keeps existing design)
+================================ */
+
+/* header right controls */
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* form helpers */
+.grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+@media (max-width: 980px) {
+    .grid2 { grid-template-columns: 1fr; }
+}
+
+.row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.label {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+}
+
+.input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text);
+    outline: none;
+    transition: border-color .12s ease, background .12s ease;
+}
+
+.input:focus {
+    border-color: rgba(203, 213, 225, 0.40);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.input:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* actions row */
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+/* buttons (match your dark theme) */
+.btn {
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text);
+    cursor: pointer;
+    transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(203, 213, 225, 0.35);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btnPrimary {
+    border: 1px solid transparent;
+    background: linear-gradient(90deg, rgba(96,165,250,0.35), rgba(167,139,250,0.30), rgba(244,114,182,0.25));
+}
+
+.btnPrimary:hover:not(:disabled) {
+    background: linear-gradient(90deg, rgba(96,165,250,0.45), rgba(167,139,250,0.38), rgba(244,114,182,0.33));
+}
+
+.btnDanger {
+    border-color: rgba(239, 68, 68, 0.50);
+    background: rgba(239, 68, 68, 0.10);
+    color: #fecaca;
+}
+
+.btnDanger:hover:not(:disabled) {
+    border-color: rgba(239, 68, 68, 0.70);
+    background: rgba(239, 68, 68, 0.16);
+}
+
+/* table (for Ingredients.jsx) */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--card-border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    font-size: 14px;
+}
+
+.table tr:hover .td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* errors */
+.error {
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.10);
+    color: #fecaca;
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin: 0 auto 14px auto;
+    max-width: 1100px;
+}
+
+/* if you want cards to align with your layout widths */
+.page > .card {
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+}
