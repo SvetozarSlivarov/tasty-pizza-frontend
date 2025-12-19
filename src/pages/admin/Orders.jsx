@@ -1,169 +1,250 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { adminListOrders } from "../../api/adminOrders";
 import styles from "../../styles/Orders.module.css";
 
 const STATUSES = [
-    { value: "all", label: "All" },
-    { value: "ORDERED", label: "Ordered" },
-    { value: "PREPARING", label: "Preparing" },
-    { value: "OUT_FOR_DELIVERY", label: "Out for delivery" },
-    { value: "DELIVERED", label: "Delivered" },
-    { value: "CANCELLED", label: "Cancelled" },
+  { value: "all", label: "All" },
+  { value: "ORDERED", label: "Ordered" },
+  { value: "PREPARING", label: "Preparing" },
+  { value: "OUT_FOR_DELIVERY", label: "Out for delivery" },
+  { value: "DELIVERED", label: "Delivered" },
+  { value: "CANCELLED", label: "Cancelled" },
 ];
 
 const fmtDate = (dt) => (dt ? new Date(dt).toLocaleString() : "-");
 const money = (v) => {
-    if (v == null) return "0.00";
-    const n = typeof v === "string" ? Number(v) : v;
-    return Number.isFinite(n) ? n.toFixed(2) : String(v);
+  if (v == null) return "0.00";
+  const n = typeof v === "string" ? Number(v) : v;
+  return Number.isFinite(n) ? n.toFixed(2) : String(v);
 };
 
 function statusClass(status) {
-    switch (status) {
-        case "ORDERED": return `${styles.status} ${styles.statusOrdered}`;
-        case "PREPARING": return `${styles.status} ${styles.statusPreparing}`;
-        case "OUT_FOR_DELIVERY": return `${styles.status} ${styles.statusOut}`;
-        case "DELIVERED": return `${styles.status} ${styles.statusDelivered}`;
-        case "CANCELLED": return `${styles.status} ${styles.statusCancelled}`;
-        default: return styles.status;
-    }
+  switch (status) {
+    case "ORDERED":
+      return `${styles.status} ${styles.statusOrdered}`;
+    case "PREPARING":
+      return `${styles.status} ${styles.statusPreparing}`;
+    case "OUT_FOR_DELIVERY":
+      return `${styles.status} ${styles.statusOut}`;
+    case "DELIVERED":
+      return `${styles.status} ${styles.statusDelivered}`;
+    case "CANCELLED":
+      return `${styles.status} ${styles.statusCancelled}`;
+    default:
+      return styles.status;
+  }
 }
 
 export default function Orders() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const [status, setStatus] = useState("all");
-    const [q, setQ] = useState("");
-    const [page, setPage] = useState(1);
-    const [size, setSize] = useState(20);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const userIdParam = searchParams.get("userId");
+  const usernameParam = searchParams.get("username");
+  const userId = userIdParam ? Number(userIdParam) : null;
 
-    const [loading, setLoading] = useState(false);
-    const [data, setData] = useState({ items: [], total: 0, page: 0, size: 20 });
-    const [error, setError] = useState(null);
+  const [status, setStatus] = useState("all");
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(20);
 
-    const totalPages = useMemo(() => {
-        const total = data?.total ?? 0;
-        return Math.max(1, Math.ceil(total / size));
-    }, [data, size]);
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState({ items: [], total: 0, page: 0, size: 20 });
+  const [error, setError] = useState(null);
 
-    async function load() {
-        setLoading(true);
-        setError(null);
-        try {
-            const res = await adminListOrders({ status, q, page, size });
-            setData(res);
-        } catch (e) {
-            setError(e?.message || "Failed to load orders");
-        } finally {
-            setLoading(false);
-        }
+  const totalPages = useMemo(() => {
+    const total = data?.total ?? 0;
+    return Math.max(1, Math.ceil(total / size));
+  }, [data, size]);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminListOrders({ status, q, userId, page, size });
+      setData(res);
+    } catch (e) {
+      setError(e?.message || "Failed to load orders");
+    } finally {
+      setLoading(false);
     }
+  }
 
-    useEffect(() => { load(); }, [status, page, size]); // eslint-disable-line
+  useEffect(() => {
+    load();
+  }, [status, page, size, userIdParam]); // eslint-disable-line
 
-    function onSearchSubmit(e) {
-        e.preventDefault();
-        setPage(1);
-        load();
-    }
+  function onSearchSubmit(e) {
+    e.preventDefault();
+    setPage(1);
+    load();
+  }
 
-    return (
-        <div className={styles.page}>
-            <h2 className={styles.title}>Admin Orders</h2>
+  function clearUserFilter() {
+    const next = new URLSearchParams(searchParams);
+    next.delete("userId");
+    next.delete("username");
+    setSearchParams(next);
+    setPage(1);
+  }
 
-            <div className={styles.card}>
-                <form onSubmit={onSearchSubmit} className={styles.toolbar}>
-                    <select className={styles.select} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
-                        {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                    </select>
+  return (
+    <div className={styles.page}>
+      <h2 className={styles.title}>Admin Orders</h2>
 
-                    <input
-                        className={styles.input}
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="Search by id/username/phone/address"
-                    />
+      <div className={styles.card}>
+        <form onSubmit={onSearchSubmit} className={styles.toolbar}>
+          <select
+            className={styles.select}
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+          >
+            {STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
 
-                    <button className={styles.btn} type="submit" disabled={loading}>
-                        {loading ? "Loading..." : "Search"}
-                    </button>
+          <input
+            className={styles.input}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search by id/username/phone/address"
+          />
 
-                    <select className={styles.select} value={size} onChange={(e) => { setSize(Number(e.target.value)); setPage(1); }}>
-                        {[10, 20, 50].map(n => <option key={n} value={n}>{n} / page</option>)}
-                    </select>
-                </form>
+          {userId ? (
+            <span className={styles.mono} title={`User filter: ${usernameParam || userId}`}>
+              User: {usernameParam || `#${userId}`}
+              <button
+                type="button"
+                className={styles.pagerBtn}
+                style={{ marginLeft: 8 }}
+                onClick={clearUserFilter}
+                disabled={loading}
+              >
+                Clear
+              </button>
+            </span>
+          ) : null}
 
-                {error && <div className={styles.error}>{error}</div>}
+          <button className={styles.btn} type="submit" disabled={loading}>
+            {loading ? "Loading..." : "Search"}
+          </button>
 
-                <div className={styles.tableWrap}>
-                    <table className={styles.table} cellPadding="0" cellSpacing="0">
-                        <thead>
-                            <tr>
-                                <th className={styles.th}>ID</th>
-                                <th className={styles.th}>Status</th>
-                                <th className={`${styles.th} ${styles.right}`}>Items</th>
-                                <th className={`${styles.th} ${styles.right}`}>Total</th>
-                                <th className={styles.th}>Customer</th>
-                                <th className={styles.th}>Phone</th>
-                                <th className={styles.th}>Address</th>
-                                <th className={styles.th}>Created</th>
-                                <th className={styles.th}></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading && (
-                                <tr><td className={styles.td} colSpan={9}>Loading...</td></tr>
-                            )}
+          <select
+            className={styles.select}
+            value={size}
+            onChange={(e) => {
+              setSize(Number(e.target.value));
+              setPage(1);
+            }}
+          >
+            {[10, 20, 50].map((n) => (
+              <option key={n} value={n}>
+                {n} / page
+              </option>
+            ))}
+          </select>
+        </form>
 
-                            {!loading && (data?.items?.length ?? 0) === 0 && (
-                                <tr><td className={styles.td} colSpan={9}>No orders.</td></tr>
-                            )}
+        {error && <div className={styles.error}>{error}</div>}
 
-                            {!loading && data.items.map(o => (
-                                <tr key={o.orderId}>
-                                    <td className={`${styles.td} ${styles.mono}`}>#{o.orderId}</td>
-                                    <td className={styles.td}>
-                                        <span className={statusClass(o.status)}>
-                                            <span className={styles.dot}></span>
-                                            {o.status}
-                                        </span>
-                                    </td>
-                                    <td className={`${styles.td} ${styles.right}`}>{o.itemCount ?? 0}</td>
-                                    <td className={`${styles.td} ${styles.right}`}>{money(o.total)}</td>
-                                    <td className={styles.td}>{o.customerUsername ?? "-"}</td>
-                                    <td className={`${styles.td} ${styles.truncate}`} title={o.deliveryPhone ?? "-"}>
-                                        {o.deliveryPhone ?? "-"}
-                                    </td>
-                                    <td className={`${styles.td} ${styles.truncate}`} title={o.deliveryAddress ?? "-"}>
-                                        {o.deliveryAddress ?? "-"}
-                                    </td>
-                                    <td className={styles.td}>{fmtDate(o.createdAt)}</td>
-                                    <td className={`${styles.td} ${styles.right}`}>
-                                        <button className={styles.pagerBtn} onClick={() => navigate(`/admin/orders/${o.orderId}`)}>
-                                            Details
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+        <div className={styles.tableWrap}>
+          <table className={styles.table} cellPadding="0" cellSpacing="0">
+            <thead>
+              <tr>
+                <th className={styles.th}>ID</th>
+                <th className={styles.th}>Status</th>
+                <th className={`${styles.th} ${styles.right}`}>Items</th>
+                <th className={`${styles.th} ${styles.right}`}>Total</th>
+                <th className={styles.th}>Customer</th>
+                <th className={styles.th}>Phone</th>
+                <th className={styles.th}>Address</th>
+                <th className={styles.th}>Created</th>
+                <th className={styles.th}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr>
+                  <td className={styles.td} colSpan={9}>
+                    Loading...
+                  </td>
+                </tr>
+              )}
 
-                <div className={styles.pager}>
-                    <button className={styles.pagerBtn} disabled={loading || page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
-                        Prev
-                    </button>
+              {!loading && (data?.items?.length ?? 0) === 0 && (
+                <tr>
+                  <td className={styles.td} colSpan={9}>
+                    No orders.
+                  </td>
+                </tr>
+              )}
 
-                    <span className={styles.mono}>
-                        Page {page} / {totalPages} · Total {data?.total ?? 0}
-                    </span>
-
-                    <button className={styles.pagerBtn} disabled={loading || page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
-                        Next
-                    </button>
-                </div>
-            </div>
+              {!loading &&
+                data.items.map((o) => (
+                  <tr key={o.orderId}>
+                    <td className={`${styles.td} ${styles.mono}`}>#{o.orderId}</td>
+                    <td className={styles.td}>
+                      <span className={statusClass(o.status)}>
+                        <span className={styles.dot}></span>
+                        {o.status}
+                      </span>
+                    </td>
+                    <td className={`${styles.td} ${styles.right}`}>{o.itemCount ?? 0}</td>
+                    <td className={`${styles.td} ${styles.right}`}>{money(o.total)}</td>
+                    <td className={styles.td}>{o.customerUsername ?? "-"}</td>
+                    <td className={`${styles.td} ${styles.truncate}`} title={o.deliveryPhone ?? "-"}>
+                      {o.deliveryPhone ?? "-"}
+                    </td>
+                    <td className={`${styles.td} ${styles.truncate}`} title={o.deliveryAddress ?? "-"}>
+                      {o.deliveryAddress ?? "-"}
+                    </td>
+                    <td className={styles.td}>{fmtDate(o.createdAt)}</td>
+                    <td className={`${styles.td} ${styles.right}`}>
+                      <button
+                        type="button"
+                        className={styles.pagerBtn}
+                        onClick={() => navigate(`/admin/orders/${o.orderId}`)}
+                      >
+                        Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         </div>
-    );
+
+        <div className={styles.pager}>
+          <button
+            className={styles.pagerBtn}
+            disabled={loading || page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            type="button"
+          >
+            Prev
+          </button>
+
+          <span className={styles.mono}>
+            Page {page} / {totalPages} · Total {data?.total ?? 0}
+          </span>
+
+          <button
+            className={styles.pagerBtn}
+            disabled={loading || page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

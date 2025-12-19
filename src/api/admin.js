@@ -87,7 +87,7 @@ export const adminApi = {
   },
 
 
-  
+
   async listIngredientTypes() {
     return http.get("/ingredient-type");
   },
@@ -127,5 +127,30 @@ export const adminApi = {
 
   async restoreIngredient(id) {
     return http.post(`/ingredients/${id}/restore`, {});
+  },
+
+
+  // ---------- USERS ---------- //
+  async listUsers({ q = "", show = "active", page = 0, size = 20, sort = "id,desc" } = {}) {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (show) params.set("show", show);
+    params.set("page", String(page));
+    params.set("size", String(size));
+    if (sort) params.set("sort", sort);
+
+    return http.get(`/admin/users?${params.toString()}`);
+  },
+
+  async changeRole(userId, role) {
+    return http.patch(`/admin/users/${userId}/role`, { role });
+  },
+
+  async softDelete(userId) {
+    return http.del(`/admin/users/${userId}`);
+  },
+
+  async restore(userId) {
+    return http.post(`/admin/users/${userId}/restore`);
   },
 };

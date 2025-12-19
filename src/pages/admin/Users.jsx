@@ -1,211 +1,312 @@
 import { useEffect, useMemo, useState } from "react";
-import { adminApi } from "../../api/admin";
+import { useNavigate } from "react-router-dom";
 import styles from "../../styles/adminUsers.module.css";
+import { adminApi } from "../../api/admin";
+import { useAuth } from "../../context/AuthContext";
 
-const ROLE_OPTIONS = ["ADMIN", "CUSTOMER"];
+const ROLE_OPTIONS = ["USER", "ADMIN"];
+const PAGE_SIZES = [2, 5, 10, 20, 50, 100];
 
-function RoleBadge({ role }) {
-    const cls = role === "ADMIN" ? styles.badgeAdmin : styles.badgeCustomer;
-    return <span className={`${styles.badge} ${cls}`}>{role}</span>;
-}
+const SHOW_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "deleted", label: "Deleted" },
+  { value: "all", label: "All" },
+];
 
-function Avatar({ username = "?" }) {
-    const initials = (username[0] || "?").toUpperCase();
-    return <span className={styles.avatar}>{initials}</span>;
-}
+export default function Users() {
+  const auth = useAuth?.();
+  const meId = auth?.user?.id ?? null;
+  const meUsername = auth?.user?.username ?? null;
 
-export default function UsersAdmin() {
-    const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [page, setPage] = useState(1);
-    const [size] = useState(50);
-    const [q, setQ] = useState("");
-    const [saving, setSaving] = useState({});
-    const [status, setStatus] = useState("");
+  const [q, setQ] = useState("");
+  const [show, setShow] = useState("active");
 
-    async function load() {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await adminApi.listUsers(page, size, q);
-            if (Array.isArray(data)) {
-                setRows(data);
-            } else if (data && Array.isArray(data.items)) {
-                setRows(data.items);
-            } else {
-                setRows([]);
-            }
-        } catch (e) {
-            setError(e?.message || "Failed to load users");
-        } finally {
-            setLoading(false);
-        }
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const navigate = useNavigate();
+
+  const users = useMemo(() => data?.content ?? [], [data]);
+  const totalPages = data?.totalPages ?? 0;
+  const totalElements = data?.totalElements ?? 0;
+
+  const canPrev = page > 0;
+  const canNext = totalPages ? page + 1 < totalPages : false;
+
+  async function load({ nextPage = page, nextQ = q, nextShow = show, nextSize = size } = {}) {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await adminApi.listUsers({
+        q: nextQ,
+        show: nextShow,
+        page: nextPage,
+        size: nextSize,
+        sort: "id,desc",
+      });
+      setData(res);
+      setPage(nextPage);
+      setSize(nextSize);
+    } catch (e) {
+      setError(e?.message || "Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load({ nextPage: 0, nextQ: q, nextShow: show });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show]);
+
+  async function onSearchSubmit(e) {
+    e.preventDefault();
+    await load({ nextPage: 0, nextQ: q, nextShow: show });
+  }
+
+  function isMe(u) {
+    if (meId != null) return u.id === meId;
+    if (meUsername != null) return u.username === meUsername;
+    return false;
+  }
+
+  async function onChangeRole(u, newRole) {
+    setError("");
+    if (isMe(u)) {
+      setError("You cannot change your own role.");
+      return;
     }
 
-    useEffect(() => { load();}, [page, size]);
-
-    const clientFiltered = useMemo(() => {
-        const term = q.trim().toLowerCase();
-        if (!term) return rows;
-        return rows.filter((u) =>
-            (u.username || "").toLowerCase().includes(term) ||
-            (u.fullname || "").toLowerCase().includes(term) ||
-            String(u.id).includes(term)
-        );
-    }, [rows, q]);
-
-    async function changeRole(user, newRole) {
-        try {
-            setSaving((s) => ({ ...s, [user.id]: true }));
-            setStatus("");
-            if (user.username) {
-                await adminApi.updateUserRoleByUsername(user.username, newRole);
-            } else {
-                await adminApi.updateUserRoleById(user.id, newRole);
-            }
-            setRows((r) => r.map((x) => (x.id === user.id ? { ...x, role: newRole } : x)));
-            setStatus(`Updated role for ${user.username ?? "#" + user.id} → ${newRole}`);
-        } catch (e) {
-            alert(e?.message || "Failed to update role");
-        } finally {
-            setSaving((s) => ({ ...s, [user.id]: false }));
-        }
+    try {
+      await adminApi.changeRole(u.id, newRole);
+      await load();
+    } catch (e) {
+      setError(e?.message || "Failed to change role");
     }
+  }
 
-    async function deleteUser(user) {
-        if (!window.confirm(`Delete user ${user.username ?? ("#" + user.id)}? This cannot be undone.`)) return;
-        try {
-            setSaving((s) => ({ ...s, [user.id]: true }));
-            if (user.username) {
-                await adminApi.deleteUserByUsername(user.username);
-            } else {
-                await adminApi.deleteUserById(user.id);
-            }
-            setRows((r) => r.filter((x) => x.id !== user.id));
-            setStatus(`Deleted ${user.username ?? ("#" + user.id)}`);
-        } catch (e) {
-            alert(e?.message || "Failed to delete user");
-        } finally {
-            setSaving((s) => ({ ...s, [user.id]: false }));
-        }
+  async function onDelete(u) {
+    setError("");
+    if (isMe(u)) {
+      setError("You cannot delete your own account.");
+      return;
     }
+    if (!window.confirm(`Soft delete user "${u.username}"?`)) return;
 
-    return (
-        <div className="container">
-            <h1>Admin · Users</h1>
+    try {
+      await adminApi.softDelete(u.id);
+      await load();
+    } catch (e) {
+      setError(e?.message || "Failed to delete user");
+    }
+  }
 
-            <div className={styles.card}>
-                <div className={styles.header}>
-                    <div className={styles.status}>
-                        {loading ? "Loading…" : error ? `Error: ${error}` : `${clientFiltered.length} users`}
-                        {status ? ` · ${status}` : ""}
-                    </div>
+  async function onRestore(u) {
+    setError("");
+    try {
+      await adminApi.restore(u.id);
+      await load();
+    } catch (e) {
+      setError(e?.message || "Failed to restore user");
+    }
+  }
 
-                    <div className={styles.toolbar}>
-                        <div className={styles.search}>
-                            <input
-                                className={styles.input}
-                                placeholder="Search username, full name, or ID…"
-                                value={q}
-                                onChange={(e) => setQ(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") { setPage(1); load(); } }}
-                            />
-                            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => { setPage(1); load(); }}>
-                                Search
-                            </button>
-                        </div>
-                    </div>
-                </div>
+  return (
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Users</h1>
 
-                <div className={styles.tableWrap}>
-                    <table className={styles.table}>
-                        <colgroup>
-                            <col style={{ width: "90px" }} />
-                            <col style={{ width: "34%" }} />
-                            <col style={{ width: "22%" }} />
-                            <col style={{ width: "22%" }} />
-                            <col style={{ width: "22%" }} />
-                        </colgroup>
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>User</th>
-                            <th>Role</th>
-                            <th>Created</th>
-                            <th style={{ textAlign: "right" }}>Actions</th>
-                        </tr>
-                        </thead>
-
-                        {clientFiltered.length === 0 && !loading ? (
-                            <tbody>
-                            <tr className={styles.row}>
-                                <td colSpan={5} className={styles.empty}>No users found.</td>
-                            </tr>
-                            </tbody>
-                        ) : (
-                            <tbody>
-                            {clientFiltered.map((u) => (
-                                <tr key={u.id} className={styles.row}>
-                                    <td>#{u.id}</td>
-
-                                    <td>
-                                        <div className={styles.userCell}>
-                                            <Avatar username={u.username} />
-                                            <div>
-                                                <span className={styles.username}>{u.username ?? "—"}</span>
-                                                <span className={styles.fullname}>{u.fullname ?? ""}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        <div className={styles.roleCell}>
-                                            <RoleBadge role={u.role} />
-                                            <select
-                                                className={styles.roleSelect}
-                                                value={u.role}
-                                                onChange={(e) => changeRole(u, e.target.value)}
-                                                disabled={!!saving[u.id]}
-                                            >
-                                                {ROLE_OPTIONS.map((r) => (
-                                                    <option key={r} value={r}>{r}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </td>
-
-                                    <td>{u.createdAt ? new Date(u.createdAt).toLocaleString() : "—"}</td>
-
-                                    <td>
-                                        <div className={styles.actions}>
-                                            <button
-                                                className={`${styles.btn} ${styles.btnDanger}`}
-                                                onClick={() => deleteUser(u)}
-                                                disabled={!!saving[u.id]}
-                                                title="Delete user"
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        )}
-                    </table>
-                </div>
-
-                <div className={styles.pagination}>
-                    <button className={styles.btn} onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
-                        Prev
-                    </button>
-                    <span>Page {page}</span>
-                    <button className={styles.btn} onClick={() => setPage((p) => p + 1)}>
-                        Next
-                    </button>
-                </div>
-            </div>
+        <div className={styles.headerActions}>
+          <span className={styles.muted}>{totalElements ? `${totalElements} total` : ""}</span>
         </div>
-    );
+      </div>
+
+      <div className={styles.card}>
+        <div className={styles.body}>
+          <div className={styles.toolbar}>
+            <form onSubmit={onSearchSubmit}>
+              <input
+                className={styles.search}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search by username / full name..."
+                disabled={loading}
+              />
+            </form>
+
+            <div className={styles.filter}>
+              <span className={styles.filterLabel}>Show</span>
+              <select
+                className={styles.select}
+                value={show}
+                onChange={(e) => setShow(e.target.value)}
+                disabled={loading}
+              >
+                {SHOW_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {loading ? <div className={styles.loading}>Loading...</div> : null}
+          {error ? <div className={styles.error}>{error}</div> : null}
+
+          <div className={styles.tableWrap}>
+            <table className={`${styles.table} ${styles.zebra}`}>
+              <thead>
+                <tr>
+                  <th className={`${styles.th} ${styles.colId}`}>ID</th>
+                  <th className={styles.th}>Username</th>
+                  <th className={styles.th}>Full name</th>
+                  <th className={styles.th}>Role</th>
+                  <th className={`${styles.th} ${styles.colStatus}`}>Status</th>
+                  <th className={styles.th}>Token</th>
+                  <th className={`${styles.th} ${styles.colActions}`}>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {users.map((u) => {
+                  const me = isMe(u);
+                  const deleted = !!u.deleted;
+
+                  return (
+                    <tr key={u.id} style={{ opacity: deleted ? 0.65 : 1 }}>
+                      <td className={styles.td}>{u.id}</td>
+                      <td className={styles.td}>
+                        <span className={me ? styles.muted : undefined}>{u.username}</span>
+                        {me ? <span className={styles.muted}> (you)</span> : null}
+                      </td>
+                      <td className={`${styles.td} ${styles.ellipsis}`}>
+                        {u.fullname || <span className={styles.muted}>—</span>}
+                      </td>
+
+                      <td className={styles.td}>
+                        <select
+                          className={styles.select}
+                          value={u.role}
+                          disabled={loading || deleted || me}
+                          onChange={(e) => onChangeRole(u, e.target.value)}
+                          title={me ? "You cannot change your own role" : ""}
+                        >
+                          {ROLE_OPTIONS.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      <td className={styles.td}>
+                        <span className={styles.pill}>{deleted ? "deleted" : "active"}</span>
+                      </td>
+
+                      <td className={styles.td}>{u.tokenVersion}</td>
+
+                      <td className={styles.td}>
+                        <div className={styles.rowActions}>
+                          <button
+                            className={`${styles.btn} ${styles.btnSecondary}`}
+                            disabled={loading}
+                            onClick={() => {
+                              const params = new URLSearchParams();
+                              params.set("userId", String(u.id));
+                              if (u.username) params.set("username", u.username);
+                              navigate(`/admin/orders?${params.toString()}`);
+                            }}
+                          >
+                            Orders
+                          </button>
+
+                          {!deleted ? (
+                            <button
+                              className={styles.btn}
+                              disabled={loading || me}
+                              onClick={() => onDelete(u)}
+                              title={me ? "You cannot delete your own account" : ""}
+                            >
+                              Delete
+                            </button>
+                          ) : (
+                            <button
+                              className={`${styles.btn} ${styles.btnSecondary}`}
+                              disabled={loading}
+                              onClick={() => onRestore(u)}
+                            >
+                              Restore
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {!loading && users.length === 0 ? (
+                  <tr>
+                    <td className={styles.empty} colSpan={7}>
+                      No users found.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+
+          <div className={styles.pagination}>
+            <div className={styles.pageControls}>
+              <button
+                className={styles.btn}
+                disabled={!canPrev || loading}
+                onClick={() => load({ nextPage: page - 1 })}
+              >
+                Prev
+              </button>
+
+              <span className={styles.pageInfo}>
+                Page {page + 1}
+                {totalPages ? ` / ${totalPages}` : ""}
+              </span>
+
+              <button
+                className={styles.btn}
+                disabled={!canNext || loading}
+                onClick={() => load({ nextPage: page + 1 })}
+              >
+                Next
+              </button>
+            </div>
+
+            <div className={styles.pageSize}>
+              <span>Rows:</span>
+              <select
+                className={styles.select}
+                value={size}
+                disabled={loading}
+                onChange={(e) => {
+                  const newSize = Number(e.target.value);
+                  setSize(newSize);
+                  setPage(0);
+                  load({ nextPage: 0, nextQ: q, nextShow: show, nextSize: newSize });
+                }}
+              >
+                {PAGE_SIZES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

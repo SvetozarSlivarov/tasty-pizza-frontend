@@ -13,12 +13,13 @@ function toQuery(params = {}) {
   return qs ? `?${qs}` : "";
 }
 
-export async function adminListOrders({ status = "all", q = "", page = 1, size = 20 } = {}) {
+export async function adminListOrders({ status = "all", q = "", userId = null, page = 1, size = 20 } = {}) {
   const backendPage = Math.max(0, (page ?? 1) - 1);
 
   const query = toQuery({
     status,
     q: q ?? "",
+    userId: userId ?? undefined,
     page: backendPage,
     size,
   });
