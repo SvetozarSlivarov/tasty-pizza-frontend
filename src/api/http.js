@@ -4,8 +4,15 @@ const ACCESS_TOKEN_KEY = "tp_access_token";
 
 export const tokenStore = {
   get: () => localStorage.getItem(ACCESS_TOKEN_KEY),
-  set: (t) => localStorage.setItem(ACCESS_TOKEN_KEY, t),
-  clear: () => localStorage.removeItem(ACCESS_TOKEN_KEY),
+  set: (t) => {
+    if (t == null) localStorage.removeItem(ACCESS_TOKEN_KEY);
+    else localStorage.setItem(ACCESS_TOKEN_KEY, t);
+    window.dispatchEvent(new Event("auth:token"));
+  },
+  clear: () => {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    window.dispatchEvent(new Event("auth:token"));
+  },
 };
 
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -125,6 +132,17 @@ async function rawRequest(
   return data;
 }
 
+
+function shouldSkipRefreshForPath(path) {
+  const p = ensureLeadingSlash(path);
+
+  if (p.startsWith("/auth/")) return true;
+
+  return false;
+}
+
+// -------------------- Public request wrapper --------------------
+
 export async function request(path, opts = {}) {
   try {
     return await rawRequest(path, opts);
@@ -133,11 +151,15 @@ export async function request(path, opts = {}) {
 
     if (opts?.skipAuthRefresh || status !== 401) throw err;
 
+    if (shouldSkipRefreshForPath(path)) throw err;
+
+    if (!tokenStore.get()) throw err;
+
     try {
       await refreshAccessToken({ timeoutMs: opts.timeoutMs });
     } catch (refreshErr) {
       tokenStore.clear();
-      throw refreshErr;
+      throw err;
     }
     return rawRequest(path, { ...opts, skipAuthRefresh: true });
   }

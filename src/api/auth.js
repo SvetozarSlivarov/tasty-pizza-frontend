@@ -19,10 +19,6 @@ export const authApi = {
 
   me: () => http.get("/users/me"),
 
-  async updateMe(payload) {
-    return http.put("/users/me", payload);
-  },
-
   async logout() {
     try {
       await http.post("/auth/logout");
@@ -36,4 +32,7 @@ export const authApi = {
   storeAuth(res);
   return res;
 },
+  updateFullName: (payload) => http.patch("/users/me/fullname", payload),
+  updateUsername: (payload) => http.patch("/users/me/username", payload),
+  changePassword: (payload) => http.patch("/users/me/password", payload),
 };
