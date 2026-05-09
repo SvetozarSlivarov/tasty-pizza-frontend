@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import Menu from "./pages/Menu";
 import Login from "./pages/Login";
 import PizzaDetails from "./pages/PizzaDetails";
+import PastaDetails from "./pages/PastaDetails";
 import DrinkDetails from "./pages/DrinkDetails";
 import {AuthProvider} from "./context/AuthContext";
 import Register from "./pages/Register";
@@ -15,6 +16,7 @@ import Profile from "./pages/Profile";
 import AdminHome from "./pages/admin/Home";
 import PizzasAdmin from "./pages/admin/Pizzas";
 import DrinksAdmin from "./pages/admin/Drinks";
+import PastasAdmin from "./pages/admin/Pastas";
 import IngredientsAdmin from "./pages/admin/Ingredients";
 import IngredientTypes from "./pages/admin/IngredientTypes";
 import AdminOrders from "./pages/admin/Orders";
@@ -39,6 +41,7 @@ function App() {
                             <Route path="/" element={<Home />} />
                             <Route path="/menu" element={<Menu />} />
                             <Route path="/pizza/:id" element={<PizzaDetails />} />
+                            <Route path="/pasta/:id" element={<PastaDetails />} />
                             <Route path="/drink/:id" element={<DrinkDetails />} />
                             <Route path="/privacy" element={<Privacy />} />
                             <Route path="/terms" element={<Terms />} />
@@ -59,6 +62,7 @@ function App() {
                             <Route element={<RequireAdmin />}>
                                 <Route path="/admin" element={<AdminHome />} />
                                 <Route path="/admin/pizzas" element={<PizzasAdmin />} />
+                                <Route path="/admin/pastas" element={<PastasAdmin />} />
                                 <Route path="/admin/drinks" element={<DrinksAdmin />} />
                                 <Route path="/admin/ingredients" element={<IngredientsAdmin />} />
                                 <Route path="/admin/ingredient-types" element={<IngredientTypes />} />
@@ -76,3 +80,4 @@ function App() {
 }
 
 export default App;
+

@@ -34,15 +34,24 @@
 .input, .textarea, .price, .search {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.18);
+  background: #111827;
+  color: #f9fafb;
+  caret-color: #f9fafb;
   padding: 10px 12px;
   outline: none;
 }
 
 .textarea { min-height: 90px; resize: vertical; }
 
-.inputFile { width: 100%; }
+.inputFile {
+  width: 100%;
+  color: #f9fafb;
+  background: #111827;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  padding: 9px 10px;
+}
 
 .hint { font-size: 12px; opacity: 0.8; }
 
@@ -147,4 +156,52 @@
   background: rgba(255,255,255,0.06);
   cursor: pointer;
   white-space: nowrap;
+}
+
+.input::placeholder,
+.textarea::placeholder,
+.search::placeholder {
+  color: rgba(249, 250, 251, 0.48);
+}
+
+.input:focus,
+.textarea:focus,
+.price:focus,
+.search:focus {
+  border-color: rgba(245, 158, 11, 0.75);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22);
+  background: #0f172a;
+}
+
+.input:disabled,
+.textarea:disabled,
+.price:disabled,
+.search:disabled,
+.inputFile:disabled {
+  color: rgba(249, 250, 251, 0.55);
+  background: #1f2937;
+  opacity: 1;
+}
+
+.input option {
+  background: #111827;
+  color: #f9fafb;
+}
+
+.inputFile::file-selector-button {
+  margin-right: 10px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.92);
+  color: #111827;
+  font-weight: 700;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.form input:-webkit-autofill,
+.form textarea:-webkit-autofill,
+.form select:-webkit-autofill {
+  -webkit-text-fill-color: #f9fafb;
+  box-shadow: 0 0 0 1000px #111827 inset;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { isPizza, isPasta } from "../utils/productType";
 
 const DEFAULT_FALLBACK = "images/fallBackImg.png";
 
@@ -8,39 +9,44 @@ function formatMoney(n, currency = "BGN") {
 }
 
 export default function QuickModal({
-                                       item,
-                                       pizzaDetails,
-                                       selectedVariantId,
-                                       setSelectedVariantId,
-                                       onAdd,
-                                       onDetails,
-                                       onClose,
-                                       loading = false,
-                                       error = null,
-                                       adding = false,
-                                       currency = "BGN",
-                                       fallbackSrc = DEFAULT_FALLBACK,
-                                   }) {
-    const isPizza = !!item?.basePrice;
+    item,
+    pizzaDetails,
+    pastaDetails,
+    selectedVariantId,
+    setSelectedVariantId,
+    selectedSauceId,
+    setSelectedSauceId,
+    onAdd,
+    onDetails,
+    onClose,
+    loading = false,
+    error = null,
+    adding = false,
+    currency = "BGN",
+    fallbackSrc = DEFAULT_FALLBACK,
+}) {
+    const itemIsPizza = isPizza(item);
+    const itemIsPasta = isPasta(item);
 
     const selectedVariant = useMemo(() => {
         if (!pizzaDetails?.variants?.length) return null;
-        return pizzaDetails.variants.find(
-            (v) => String(v.id) === String(selectedVariantId)
-        ) || null;
+        return pizzaDetails.variants.find((v) => String(v.id) === String(selectedVariantId)) || null;
     }, [pizzaDetails, selectedVariantId]);
 
-    const base = Number(pizzaDetails?.basePrice ?? item?.basePrice ?? 0);
-    const extra = Number(selectedVariant?.extraPrice || 0);
+    const selectedSauce = useMemo(() => {
+        if (!pastaDetails?.sauces?.length) return null;
+        return pastaDetails.sauces.find((s) => String(s.id) === String(selectedSauceId)) || null;
+    }, [pastaDetails, selectedSauceId]);
+
+    const base = Number(pizzaDetails?.basePrice ?? pastaDetails?.basePrice ?? item?.basePrice ?? item?.price ?? 0);
+    const extra = itemIsPizza ? Number(selectedVariant?.extraPrice || 0) : itemIsPasta ? Number(selectedSauce?.extraPrice || 0) : 0;
     const finalPrice = base + extra;
 
-    const variantLabel = (v) =>
-        v?.name || [v?.size, v?.dough].filter(Boolean).join(" · ");
+    const variantLabel = (v) => v?.name || [v?.size, v?.dough].filter(Boolean).join(" / ");
+    const sauceLabel = (s) => [s?.ingredientName || s?.name, s?.spicyLevel].filter(Boolean).join(" / ");
 
     useEffect(() => {
-        const onKey = (e) => {
-            if (e.key === "Escape") onClose?.();
-        };
+        const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, [onClose]);
@@ -48,7 +54,7 @@ export default function QuickModal({
     return (
         <div className="modal-backdrop" onClick={onClose}>
             <div className="modal-window" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-                <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+                <button className="modal-close" onClick={onClose} aria-label="Close">x</button>
 
                 <div className="modal-header">
                     <img src={item?.imageUrl || fallbackSrc} alt={item?.name} />
@@ -58,61 +64,58 @@ export default function QuickModal({
                     </div>
                 </div>
 
-                {loading && <p>Loading…</p>}
+                {loading && <p>Loading...</p>}
                 {error && <p className="alert error">{error}</p>}
 
-                {isPizza && !loading && !error && (
+                {itemIsPizza && !loading && !error && (
                     <div className="modal-body">
                         {pizzaDetails?.variants?.length ? (
                             <>
                                 <label className="block">
                                     Variant:
-                                    <select
-                                        value={selectedVariantId ?? ""}
-                                        onChange={(e) => setSelectedVariantId?.(e.target.value)}
-                                    >
+                                    <select value={selectedVariantId ?? ""} onChange={(e) => setSelectedVariantId?.(e.target.value)}>
                                         {pizzaDetails.variants.map((v) => (
-                                            <option className="modal-options"
-                                                key={v.id} value={v.id}>
-                                                {variantLabel(v)}
-                                                {Number(v.extraPrice) > 0
-                                                    ? ` (+${formatMoney(v.extraPrice, currency)})`
-                                                    : ""}
+                                            <option className="modal-options" key={v.id} value={v.id}>
+                                                {variantLabel(v)}{Number(v.extraPrice) > 0 ? ` (+${formatMoney(v.extraPrice, currency)})` : ""}
                                             </option>
                                         ))}
                                     </select>
                                 </label>
-                                <div className="price-row">
-                                    <span>Total:</span>
-                                    <strong>{formatMoney(finalPrice, currency)}</strong>
-                                </div>
+                                <div className="price-row"><span>Total:</span><strong>{formatMoney(finalPrice, currency)}</strong></div>
                             </>
-                        ) : (
-                            <p className="muted">No variants available.</p>
-                        )}
+                        ) : <p className="muted">No variants available.</p>}
                     </div>
                 )}
 
-                {!isPizza && !loading && !error && (
+                {itemIsPasta && !loading && !error && (
                     <div className="modal-body">
-                        <div className="price-row">
-                            <span>Price:</span>
-                            <strong>{formatMoney(item?.price, currency)}</strong>
-                        </div>
+                        {pastaDetails?.sauces?.length ? (
+                            <>
+                                <label className="block">
+                                    Sauce:
+                                    <select value={selectedSauceId ?? ""} onChange={(e) => setSelectedSauceId?.(e.target.value)}>
+                                        {pastaDetails.sauces.map((s) => (
+                                            <option className="modal-options" key={s.id} value={s.id}>
+                                                {sauceLabel(s)}{Number(s.extraPrice) > 0 ? ` (+${formatMoney(s.extraPrice, currency)})` : ""}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <div className="price-row"><span>Total:</span><strong>{formatMoney(finalPrice, currency)}</strong></div>
+                            </>
+                        ) : <p className="muted">No sauces available.</p>}
                     </div>
+                )}
+
+                {!itemIsPizza && !itemIsPasta && !loading && !error && (
+                    <div className="modal-body"><div className="price-row"><span>Price:</span><strong>{formatMoney(item?.price ?? item?.basePrice, currency)}</strong></div></div>
                 )}
 
                 <div className="modal-actions">
-                    <button
-                        className="btn primary"
-                        onClick={() => onAdd?.(item, selectedVariant)}
-                        disabled={loading || adding}
-                    >
-                        {adding ? "Adding…" : "Add to cart"}
+                    <button className="btn primary" onClick={() => onAdd?.(item, itemIsPizza ? selectedVariant : itemIsPasta ? selectedSauce : null)} disabled={loading || adding}>
+                        {adding ? "Adding..." : "Add to cart"}
                     </button>
-                    <button className="btn outline" onClick={() => onDetails?.(item)}>
-                        Details
-                    </button>
+                    <button className="btn outline" onClick={() => onDetails?.(item)}>Details</button>
                 </div>
             </div>
         </div>

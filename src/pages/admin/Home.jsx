@@ -6,7 +6,7 @@ import styles from "../../styles/admin.module.css";
 
 export default function AdminHome() {
     const { user } = useAuth();
-    const [health, setHealth] = useState("…");
+    const [health, setHealth] = useState("â€¦");
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -74,10 +74,13 @@ export default function AdminHome() {
                             <h2 className={styles.sectionTitle}>Quick links</h2>
                             <div className={styles.links} role="list">
                                 <Link className={styles.item} to="/admin/pizzas" role="listitem">
-                                    <span>Catalog → Pizzas</span>
+                                    <span>Catalog â†’ Pizzas</span>
+                                </Link>
+                                <Link className={styles.item} to="/admin/pastas" role="listitem">
+                                    <span>Catalog -> Pastas</span>
                                 </Link>
                                 <Link className={styles.item} to="/admin/drinks" role="listitem">
-                                    <span>Catalog → Drinks</span>
+                                    <span>Catalog â†’ Drinks</span>
                                 </Link>
                                 <Link className={styles.item} to="/admin/ingredients" role="listitem">
                                     <span>Ingredients</span>

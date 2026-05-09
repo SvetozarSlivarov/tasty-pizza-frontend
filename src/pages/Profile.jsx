@@ -34,7 +34,7 @@ const STATUS_STEPS = ["ordered", "preparing", "out_for_delivery", "delivered", "
 const ACTIVE_SET = new Set(["ordered", "preparing", "out_for_delivery"]);
 
 function money(v) {
-  if (v == null) return "—";
+  if (v == null) return "â€”";
   const n = typeof v === "number" ? v : Number(v);
   if (Number.isFinite(n)) return n.toFixed(2);
   return String(v);
@@ -42,7 +42,7 @@ function money(v) {
 
 function StatusChip({ status }) {
   const s = normStatus(status);
-  const label = STATUS_LABEL[s] ?? String(status ?? "—");
+  const label = STATUS_LABEL[s] ?? String(status ?? "â€”");
   return <span className={`chip chip--${s}`}>{label}</span>;
 }
 
@@ -52,7 +52,7 @@ function Stage({ label, ts, done }) {
       <div className="dot" />
       <div className="meta">
         <div className="label">{label}</div>
-        <div className="ts">{ts ? new Date(ts).toLocaleString() : "—"}</div>
+        <div className="ts">{ts ? new Date(ts).toLocaleString() : "â€”"}</div>
       </div>
     </div>
   );
@@ -275,7 +275,7 @@ export default function Profile() {
           </div>
           <div>
             <div className="muted">Registered:</div>
-            <div>{user?.createdAt ? new Date(user.createdAt).toLocaleString() : "—"}</div>
+            <div>{user?.createdAt ? new Date(user.createdAt).toLocaleString() : "â€”"}</div>
           </div>
         </div>
       </section>
@@ -300,7 +300,7 @@ export default function Profile() {
         </header>
 
         {err && <p className="alert error">{err}</p>}
-        {loading && <p className="muted">Loading…</p>}
+        {loading && <p className="muted">Loadingâ€¦</p>}
         {empty && <p className="muted">You have no orders.</p>}
 
         <div className="orders__list">
@@ -345,7 +345,7 @@ export default function Profile() {
                 {/* Status history panel (raw list) */}
                 {isHistoryOpen && (
                   <div className="order__history">
-                    {isHistoryLoading && <div className="muted">Loading status history…</div>}
+                    {isHistoryLoading && <div className="muted">Loading status historyâ€¦</div>}
                     {historyErr && <div className="alert error">{historyErr}</div>}
 
                     {!isHistoryLoading && !historyErr && history.length === 0 && (
@@ -357,7 +357,7 @@ export default function Profile() {
                         {history.map((h, idx) => (
                           <div key={`${h.status}-${h.changedAt ?? idx}`}>
                             <b>{STATUS_LABEL[normStatus(h.status)] ?? h.status}</b>{" "}
-                            — {h.changedAt ? new Date(h.changedAt).toLocaleString() : "—"}
+                            â€” {h.changedAt ? new Date(h.changedAt).toLocaleString() : "â€”"}
                           </div>
                         ))}
                       </div>
@@ -372,15 +372,16 @@ export default function Profile() {
                       <div className="meta">
                         <div className="name">
                           {it.productName}
-                          {it.variantLabel ? ` — ${it.variantLabel}` : ""}
+                          {it.variantLabel ? ` - ${it.variantLabel}` : ""}
+                          {it.pastaSauceName ? ` - ${it.pastaSauceName}${it.pastaSauceSpicyLevel ? " / " + it.pastaSauceSpicyLevel : ""}` : ""}
                         </div>
 
                         {it.customizations?.length > 0 && (
                           <div className="muted small">
                             {it.customizations
                               .map((c) => {
-                                const name = ingredientNameMap.get(c.ingredientId) ?? `#${c.ingredientId}`;
-                                const sign = String(c.action ?? "").toLowerCase() === "add" ? "+" : "−";
+                                const name = c.ingredientName ?? ingredientNameMap.get(c.ingredientId) ?? `#${c.ingredientId}`;
+                                const sign = String(c.action ?? "").toLowerCase() === "add" ? "+" : "âˆ’";
                                 return `${sign}${name}`;
                               })
                               .join(", ")}
@@ -388,7 +389,7 @@ export default function Profile() {
                         )}
                       </div>
 
-                      <div className="qty">× {it.quantity}</div>
+                      <div className="qty">Ã— {it.quantity}</div>
                       <div className="price">{money(it.unitPrice)} BGN</div>
                     </li>
                   ))}
@@ -397,8 +398,8 @@ export default function Profile() {
 
                 {(o.address || o.phoneNumber) && (
                   <div className="order__delivery muted">
-                    <div>Address: {o.address || "—"}</div>
-                    <div>Phone: {o.phoneNumber || "—"}</div>
+                    <div>Address: {o.address || "â€”"}</div>
+                    <div>Phone: {o.phoneNumber || "â€”"}</div>
                   </div>
                 )}
               </article>
@@ -411,3 +412,4 @@ export default function Profile() {
     </div>
   );
 }
+

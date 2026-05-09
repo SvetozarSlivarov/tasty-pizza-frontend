@@ -17,6 +17,16 @@ function mapAddPizzaPayload(p) {
     };
 }
 
+function mapAddPastaPayload(p) {
+    return {
+        productId: p.productId,
+        pastaSauceId: p.pastaSauceId ?? p.sauceId ?? null,
+        quantity: toQty(p.quantity ?? p.qty) ?? 1,
+        note: p.note ?? "",
+        addIngredientIds: p.addIngredientIds ?? p.addIds ?? [],
+    };
+}
+
 function mapAddDrinkPayload(p) {
     return {
         productId: p.productId,
@@ -27,39 +37,21 @@ function mapAddDrinkPayload(p) {
 
 function mapPatchPayload(patch) {
     const out = {};
-
-    if (patch.quantity != null || patch.qty != null) {
-        out.quantity = toQty(patch.quantity ?? patch.qty);
-    }
-    if (patch.note != null) {
-        out.note = patch.note;
-    }
-    if (patch.variantId != null) {
-        out.variantId = patch.variantId;
-    }
-    if (Array.isArray(patch.addIngredientIds) || Array.isArray(patch.addIds)) {
-        out.addIngredientIds = patch.addIngredientIds ?? patch.addIds;
-    }
-    if (Array.isArray(patch.removeIngredientIds) || Array.isArray(patch.removeIds)) {
-        out.removeIngredientIds = patch.removeIngredientIds ?? patch.removeIds;
-    }
+    if (patch.quantity != null || patch.qty != null) out.quantity = toQty(patch.quantity ?? patch.qty);
+    if (patch.note != null) out.note = patch.note;
+    if (patch.variantId != null) out.variantId = patch.variantId;
+    if (patch.pastaSauceId != null || patch.sauceId != null) out.pastaSauceId = patch.pastaSauceId ?? patch.sauceId;
+    if (Array.isArray(patch.addIngredientIds) || Array.isArray(patch.addIds)) out.addIngredientIds = patch.addIngredientIds ?? patch.addIds;
+    if (Array.isArray(patch.removeIngredientIds) || Array.isArray(patch.removeIds)) out.removeIngredientIds = patch.removeIngredientIds ?? patch.removeIds;
     return out;
 }
 
 export const cartApi = {
     get: () => http.get("/cart"),
-
-    addDrink: (payload) =>
-        http.post("/cart/items/drink", mapAddDrinkPayload(payload)),
-
-    addPizza: (payload) =>
-        http.post("/cart/items/pizza", mapAddPizzaPayload(payload)),
-
-    updateItem: (itemId, patch) =>
-        http.patch(`/cart/items/${itemId}`, mapPatchPayload(patch)),
-
+    addDrink: (payload) => http.post("/cart/items/drink", mapAddDrinkPayload(payload)),
+    addPizza: (payload) => http.post("/cart/items/pizza", mapAddPizzaPayload(payload)),
+    addPasta: (payload) => http.post("/cart/items/pasta", mapAddPastaPayload(payload)),
+    updateItem: (itemId, patch) => http.patch(`/cart/items/${itemId}`, mapPatchPayload(patch)),
     removeItem: (itemId) => http.del(`/cart/items/${itemId}`),
-
-    checkout: ({ phone, address }) =>
-        http.post("/cart/checkout", { phone, address }),
+    checkout: ({ phone, address }) => http.post("/cart/checkout", { phone, address }),
 };

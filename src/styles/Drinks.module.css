@@ -186,3 +186,42 @@ textarea.input { resize: vertical; }
     padding: 12px 16px;
     border-top: 1px solid var(--pz-border);
 }
+.input::placeholder {
+    color: rgba(232, 238, 247, 0.48);
+}
+
+.input:disabled {
+    color: rgba(232, 238, 247, 0.55);
+    background: #1f2937;
+    opacity: 1;
+}
+
+.input option {
+    background: #0e121a;
+    color: var(--drink-text);
+}
+
+.form input[type="file"] {
+    color: var(--drink-text);
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--drink-border);
+    border-radius: 12px;
+    padding: 9px 10px;
+}
+
+.form input[type="file"]::file-selector-button {
+    margin-right: 10px;
+    border: 1px solid var(--drink-border);
+    border-radius: 8px;
+    background: var(--drink-primary);
+    color: #030711;
+    font-weight: 700;
+    padding: 7px 10px;
+    cursor: pointer;
+}
+
+.form input:-webkit-autofill,
+.form textarea:-webkit-autofill {
+    -webkit-text-fill-color: var(--drink-text);
+    box-shadow: 0 0 0 1000px #0e121a inset;
+}

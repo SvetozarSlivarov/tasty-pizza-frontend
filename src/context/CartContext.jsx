@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useMemo, useReducer, useCallback 
 import { cartApi } from "../api/cart";
 
 let notify;
-
 const CartContext = createContext(null);
 
 const initialState = {
@@ -28,38 +27,34 @@ function toInt(v, fallback = null) {
 function normalizeType(it) {
   const raw = it?.productType ?? it?.type ?? "";
   const t = String(raw).toLowerCase();
-
   if (t === "pizza") return "pizza";
+  if (t === "pasta") return "pasta";
   if (t === "drink") return "drink";
-
   if (it?.pizzaVariantId != null || it?.variantId != null || it?.variant) return "pizza";
+  if (it?.pastaSauceId != null || it?.pastaSauceName != null || it?.pastaSauceSpicyLevel != null) return "pasta";
   return "drink";
 }
 
 function mapServerCart(data) {
   const items = (data?.items ?? []).map((it) => {
     const id = it.id ?? it.itemId ?? it.cartItemId;
-
     const qty = toInt(it.quantity ?? it.qty ?? 1, 1);
     const unitPrice = toNum(it.unitPrice ?? it.price ?? 0, 0);
-
-    const name = it.productName ?? it.name ?? it.pizzaName ?? it.drinkName ?? "Item";
+    const name = it.productName ?? it.name ?? it.pizzaName ?? it.pastaName ?? it.drinkName ?? "Item";
     const imageUrl = it.imageUrl ?? it.photo ?? it.thumbnailUrl ?? null;
-
     const type = normalizeType(it);
-
-    const productId = it.productId ?? it.pizzaId ?? it.drinkId ?? it.product?.id ?? null;
+    const productId = it.productId ?? it.pizzaId ?? it.pastaId ?? it.drinkId ?? it.product?.id ?? null;
     const pizzaVariantId = it.pizzaVariantId ?? it.variantId ?? it.variant?.id ?? null;
-
+    const pastaSauceId = it.pastaSauceId ?? it.sauceId ?? it.pastaSauce?.id ?? null;
+    const pastaSauceName = it.pastaSauceName ?? it.sauceName ?? it.pastaSauce?.name ?? it.pastaSauce?.ingredientName ?? null;
+    const pastaSauceSpicyLevel = it.pastaSauceSpicyLevel ?? it.sauceSpicyLevel ?? it.pastaSauce?.spicyLevel ?? null;
     const variantLabel =
       it.variantLabel ??
       it.variantName ??
       it.variant?.label ??
       it.variant?.name ??
       (it.size || it.dough ? `${it.size ?? ""}${it.size && it.dough ? " / " : ""}${it.dough ?? ""}` : null);
-
     const note = it.note ?? "";
-
     const customizations = Array.isArray(it.customizations)
       ? it.customizations.map((c) => ({
           ingredientId: c.ingredientId ?? c.ingredientID ?? c.id ?? c.ingredient?.id ?? null,
@@ -78,6 +73,9 @@ function mapServerCart(data) {
       variantLabel,
       productId,
       pizzaVariantId,
+      pastaSauceId,
+      pastaSauceName,
+      pastaSauceSpicyLevel,
       note,
       customizations,
       raw: it,
@@ -86,52 +84,31 @@ function mapServerCart(data) {
 
   const totalNum = toNum(data?.total, NaN);
   const subtotal = Number.isFinite(totalNum) ? totalNum : items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
-
-  return {
-    items,
-    subtotal,
-    orderId: data?.id ?? data?.orderId ?? null,
-    status: data?.status ?? null,
-  };
+  return { items, subtotal, orderId: data?.id ?? data?.orderId ?? null, status: data?.status ?? null };
 }
 
 function reducer(state, action) {
   switch (action.type) {
-    case "OPEN":
-      return { ...state, isOpen: true };
-    case "CLOSE":
-      return { ...state, isOpen: false };
-    case "LOADING":
-      return { ...state, loading: true, error: null };
-    case "ERROR":
-      return { ...state, loading: false, error: action.payload || "Error" };
-    case "SET_CART":
-      return { ...state, loading: false, error: null, ...action.payload };
-    default:
-      return state;
+    case "OPEN": return { ...state, isOpen: true };
+    case "CLOSE": return { ...state, isOpen: false };
+    case "LOADING": return { ...state, loading: true, error: null };
+    case "ERROR": return { ...state, loading: false, error: action.payload || "Error" };
+    case "SET_CART": return { ...state, loading: false, error: null, ...action.payload };
+    default: return state;
   }
 }
 
 function getErr(e) {
   const data = e?.response?.data ?? e?.data ?? {};
-  return {
-    code: data.error,
-    message: data.message || e?.message,
-    details: data.details,
-    status: e?.response?.status ?? e?.status,
-  };
+  return { code: data.error, message: data.message || e?.message, details: data.details, status: e?.response?.status ?? e?.status };
 }
 
 function showError(code, message) {
   const text =
-    code === "addon_unavailable"
-      ? "This ingredient is no longer available."
-      : code === "add_not_allowed"
-      ? "This ingredient is not allowed for this pizza."
-      : code === "cart_invalid"
-      ? "The cart contains invalid or unavailable items."
-      : message || "Operation failed.";
-
+    code === "addon_unavailable" ? "This ingredient is no longer available." :
+    code === "add_not_allowed" ? "This ingredient is not allowed for this item." :
+    code === "cart_invalid" ? "The cart contains invalid or unavailable items." :
+    message || "Operation failed.";
   if (notify?.notify?.error) notify.notify.error(text);
   else if (notify?.error) notify.error(text);
   else alert(text);
@@ -158,10 +135,7 @@ export function CartProvider({ children }) {
     }
   }, []);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
+  useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => {
     const onRefresh = () => refresh();
     window.addEventListener("cart:refresh", onRefresh);
@@ -169,171 +143,133 @@ export function CartProvider({ children }) {
   }, [refresh]);
 
   async function safe(fn, opts = { refreshOnError: false }) {
-    try {
-      const res = await fn();
-      return res;
-    } catch (e) {
+    try { return await fn(); }
+    catch (e) {
       const err = getErr(e);
-
-      if (err.code === "addon_unavailable") {
-        showError(err.code);
-        await refresh();
-      } else if (err.code === "add_not_allowed") {
-        showError(err.code);
-        if (opts.refreshOnError) await refresh();
-      } else if (err.code === "cart_invalid") {
-        showError(err.code);
-        await refresh();
-      } else {
-        showError(err.code, err.message);
-        if (opts.refreshOnError) await refresh();
-      }
-
+      showError(err.code, err.message);
+      if (err.code === "addon_unavailable" || err.code === "cart_invalid" || opts.refreshOnError) await refresh();
       throw e;
     }
   }
 
-  const api = useMemo(
-    () => ({
-      isOpen: state.isOpen,
-      open: () => dispatch({ type: "OPEN" }),
-      close: () => dispatch({ type: "CLOSE" }),
-      toggle: () => dispatch({ type: state.isOpen ? "CLOSE" : "OPEN" }),
+  const api = useMemo(() => ({
+    isOpen: state.isOpen,
+    open: () => dispatch({ type: "OPEN" }),
+    close: () => dispatch({ type: "CLOSE" }),
+    toggle: () => dispatch({ type: state.isOpen ? "CLOSE" : "OPEN" }),
+    loading: state.loading,
+    error: state.error,
+    items: state.items,
+    subtotal: state.subtotal,
+    count: state.items.reduce((s, i) => s + (Number(i.qty) || 0), 0),
+    orderId: state.orderId,
+    status: state.status,
+    refresh,
+    applyServerCart: (serverCart) => dispatch({ type: "SET_CART", payload: mapServerCart(serverCart) }),
 
-      loading: state.loading,
-      error: state.error,
-      items: state.items,
-      subtotal: state.subtotal,
-      count: state.items.reduce((s, i) => s + (Number(i.qty) || 0), 0),
-      orderId: state.orderId,
-      status: state.status,
+    async addPizza({ productId, variantId = null, quantity = 1, removeIngredientIds = [], addIngredientIds = [], note = "" }) {
+      await safe(async () => {
+        const data = await cartApi.addPizza({ productId, variantId, quantity, removeIngredientIds, addIngredientIds, note });
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      });
+      dispatch({ type: "OPEN" });
+      showSuccess("Pizza added to cart.");
+    },
 
-      refresh,
+    async addPasta({ productId, pastaSauceId, quantity = 1, addIngredientIds = [], note = "" }) {
+      await safe(async () => {
+        const data = await cartApi.addPasta({ productId, pastaSauceId, quantity, addIngredientIds, note });
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      });
+      dispatch({ type: "OPEN" });
+      showSuccess("Pasta added to cart.");
+    },
 
-      applyServerCart: (serverCart) => {
-        dispatch({ type: "SET_CART", payload: mapServerCart(serverCart) });
-      },
+    async addDrink({ productId, quantity = 1, note = "" }) {
+      await safe(async () => {
+        const data = await cartApi.addDrink({ productId, quantity, note });
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      });
+      dispatch({ type: "OPEN" });
+      showSuccess("Drink added to cart.");
+    },
 
-      async addPizza({
-        productId,
-        variantId = null,
-        quantity = 1,
-        removeIngredientIds = [],
-        addIngredientIds = [],
-        note = "",
-      }) {
-        await safe(async () => {
-          const data = await cartApi.addPizza({
-            productId,
-            variantId,
-            quantity,
-            removeIngredientIds,
-            addIngredientIds,
-            note,
-          });
-          dispatch({ type: "SET_CART", payload: mapServerCart(data) });
-          return data;
-        });
+    async updateQty(itemId, qty) {
+      const q = Math.max(1, Number(qty) || 1);
+      await safe(async () => {
+        const data = await cartApi.updateItem(itemId, { quantity: q });
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      });
+      showSuccess("Quantity updated.");
+    },
 
-        dispatch({ type: "OPEN" });
-        showSuccess("Pizza added to cart.");
-      },
+    async updateVariant(itemId, variantId) {
+      await safe(async () => {
+        const data = await cartApi.updateItem(itemId, { variantId });
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      });
+      showSuccess("Variant updated.");
+    },
 
-      async addDrink({ productId, quantity = 1, note = "" }) {
-        await safe(async () => {
-          const data = await cartApi.addDrink({ productId, quantity, note });
-          dispatch({ type: "SET_CART", payload: mapServerCart(data) });
-          return data;
-        });
+    async updatePastaSauce(itemId, pastaSauceId) {
+      await safe(async () => {
+        const data = await cartApi.updateItem(itemId, { pastaSauceId });
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      });
+      showSuccess("Sauce updated.");
+    },
 
-        dispatch({ type: "OPEN" });
-        showSuccess("Drink added to cart.");
-      },
+    async updateNote(itemId, note) {
+      await safe(async () => {
+        const data = await cartApi.updateItem(itemId, { note });
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      });
+      showSuccess("Note updated.");
+    },
 
-      async updateQty(itemId, qty) {
-        const q = Math.max(1, Number(qty) || 1);
+    async updateCustomizations(itemId, { addIds = [], removeIds = [] }) {
+      await safe(async () => {
+        const data = await cartApi.updateItem(itemId, { addIds, removeIds });
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      });
+      showSuccess("Customizations updated.");
+    },
 
-        await safe(async () => {
-          const data = await cartApi.updateItem(itemId, { quantity: q });
-          dispatch({ type: "SET_CART", payload: mapServerCart(data) });
-          return data;
-        });
+    async remove(itemId) {
+      await safe(async () => {
+        const data = await cartApi.removeItem(itemId);
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      }, { refreshOnError: true });
+      showSuccess("Item removed.");
+    },
 
-        showSuccess("Quantity updated.");
-      },
+    async clear() {
+      const ids = state.items.map((i) => i.id).filter((x) => x != null);
+      for (const id of ids) { try { await cartApi.removeItem(id); } catch {} }
+      await refresh();
+      showSuccess("Cart cleared.");
+    },
 
-      async updateVariant(itemId, variantId) {
-        await safe(async () => {
-          const data = await cartApi.updateItem(itemId, { variantId });
-          dispatch({ type: "SET_CART", payload: mapServerCart(data) });
-          return data;
-        });
-
-        showSuccess("Variant updated.");
-      },
-
-      async updateNote(itemId, note) {
-        await safe(async () => {
-          const data = await cartApi.updateItem(itemId, { note });
-          dispatch({ type: "SET_CART", payload: mapServerCart(data) });
-          return data;
-        });
-
-        showSuccess("Note updated.");
-      },
-
-      async updateCustomizations(itemId, { addIds = [], removeIds = [] }) {
-        await safe(async () => {
-          const data = await cartApi.updateItem(itemId, { addIds, removeIds });
-          dispatch({ type: "SET_CART", payload: mapServerCart(data) });
-          return data;
-        });
-
-        showSuccess("Customizations updated.");
-      },
-
-      async remove(itemId) {
-        await safe(
-          async () => {
-            const data = await cartApi.removeItem(itemId);
-            dispatch({ type: "SET_CART", payload: mapServerCart(data) });
-            return data;
-          },
-          { refreshOnError: true }
-        );
-
-        showSuccess("Item removed.");
-      },
-
-      async clear() {
-        const ids = state.items.map((i) => i.id).filter((x) => x != null);
-
-        for (const id of ids) {
-          try {
-            await cartApi.removeItem(id);
-          } catch {
-          }
-        }
-
-        await refresh();
-        showSuccess("Cart cleared.");
-      },
-
-      async checkout({ phone, address }) {
-        const res = await safe(async () => {
-          const data = await cartApi.checkout({ phone, address });
-          dispatch({ type: "SET_CART", payload: mapServerCart(data) });
-          return data;
-        });
-
-        await refresh();
-
-        showSuccess("Order placed 🎉");
-        return res;
-      },
-    }),
-    [state.isOpen, state.loading, state.error, state.items, state.subtotal, state.orderId, state.status, refresh]
-  );
+    async checkout({ phone, address }) {
+      const res = await safe(async () => {
+        const data = await cartApi.checkout({ phone, address });
+        dispatch({ type: "SET_CART", payload: mapServerCart(data) });
+        return data;
+      });
+      await refresh();
+      showSuccess("Order placed");
+      return res;
+    },
+  }), [state.isOpen, state.loading, state.error, state.items, state.subtotal, state.orderId, state.status, refresh]);
 
   return <CartContext.Provider value={api}>{children}</CartContext.Provider>;
 }
