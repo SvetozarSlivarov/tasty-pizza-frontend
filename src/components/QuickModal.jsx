@@ -3,7 +3,7 @@ import { isPizza, isPasta } from "../utils/productType";
 
 const DEFAULT_FALLBACK = "images/fallBackImg.png";
 
-function formatMoney(n, currency = "BGN") {
+function formatMoney(n, currency = "EUR") {
     const val = Number(n || 0);
     return `${val.toFixed(2)} ${currency}`;
 }
@@ -22,7 +22,7 @@ export default function QuickModal({
     loading = false,
     error = null,
     adding = false,
-    currency = "BGN",
+    currency = "EUR",
     fallbackSrc = DEFAULT_FALLBACK,
 }) {
     const itemIsPizza = isPizza(item);

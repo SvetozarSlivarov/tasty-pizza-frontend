@@ -103,32 +103,34 @@ export default function IngredientTypes() {
       {error && <div className={styles.error}>{error}</div>}
 
       <form className={styles.card} onSubmit={submit}>
-        <div className={styles.row}>
-          <label className={styles.label}>Name</label>
-          <input
-            className={styles.input}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={busy}
-            placeholder="e.g. CHEESE"
-          />
-        </div>
-
-        <div className={styles.actions}>
-          <button className={styles.btnPrimary} disabled={busy || !name.trim()}>
-            {isEditing ? "Update" : "Create"}
-          </button>
-
-          {isEditing && (
-            <button
-              type="button"
-              className={styles.btn}
+        <div className={styles.inlineFormRow}>
+          <div className={styles.row}>
+            <label className={styles.label}>Name</label>
+            <input
+              className={styles.input}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               disabled={busy}
-              onClick={resetForm}
-            >
-              Cancel
+              placeholder="e.g. CHEESE"
+            />
+          </div>
+
+          <div className={styles.inlineFormActions}>
+            <button className={styles.btnPrimary} disabled={busy || !name.trim()}>
+              {isEditing ? "Update" : "Create"}
             </button>
-          )}
+
+            {isEditing && (
+              <button
+                type="button"
+                className={styles.btn}
+                disabled={busy}
+                onClick={resetForm}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
       </form>
 

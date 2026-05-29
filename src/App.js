@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
@@ -27,52 +27,66 @@ import Terms from "./pages/Terms";
 import Cookies from "./pages/Cookies";
 import {GuestOnly, RequireAdmin, RequireAuth} from "./routes/guards";
 
+function AppRoutes() {
+    const location = useLocation();
+    const isAdmin = location.pathname.startsWith("/admin");
+    const mainStyle = isAdmin
+        ? { width: "100%", padding: 0 }
+        : { maxWidth: 1100, margin: "0 auto", padding: "24px 16px" };
+
+    return (
+        <>
+            <Navbar />
+            <main style={mainStyle}>
+                <CartDrawer />
+                <CartFab />
+                <Routes>
+                    {/* PUBLIC */}
+                    <Route path="/" element={<Home />} />
+                    <Route path="/menu" element={<Menu />} />
+                    <Route path="/pizza/:id" element={<PizzaDetails />} />
+                    <Route path="/pasta/:id" element={<PastaDetails />} />
+                    <Route path="/drink/:id" element={<DrinkDetails />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/cookies" element={<Cookies />} />
+
+                    {/* ONLY GUEST */}
+                    <Route element={<GuestOnly />}>
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                    </Route>
+
+                    {/* ONLY USER */}
+                    <Route element={<RequireAuth />}>
+                        <Route path="/profile" element={<Profile />} />
+                    </Route>
+
+                    {/* ONLY ADMIN */}
+                    <Route element={<RequireAdmin />}>
+                        <Route path="/admin" element={<AdminHome />} />
+                        <Route path="/admin/pizzas" element={<PizzasAdmin />} />
+                        <Route path="/admin/pastas" element={<PastasAdmin />} />
+                        <Route path="/admin/drinks" element={<DrinksAdmin />} />
+                        <Route path="/admin/ingredients" element={<IngredientsAdmin />} />
+                        <Route path="/admin/ingredient-types" element={<IngredientTypes />} />
+                        <Route path="/admin/orders" element={<AdminOrders />} />
+                        <Route path="/admin/orders/:id" element={<AdminOrderDetails />} />
+                        <Route path="/admin/users" element={<UsersAdmin />} />
+                    </Route>
+                </Routes>
+            </main>
+            <Footer />
+        </>
+    );
+}
+
 function App() {
     return (
         <CartProvider>
             <AuthProvider>
                 <BrowserRouter>
-                    <Navbar />
-                    <main style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
-                        <CartDrawer />
-                        <CartFab />
-                        <Routes>
-                            {/* PUBLIC */}
-                            <Route path="/" element={<Home />} />
-                            <Route path="/menu" element={<Menu />} />
-                            <Route path="/pizza/:id" element={<PizzaDetails />} />
-                            <Route path="/pasta/:id" element={<PastaDetails />} />
-                            <Route path="/drink/:id" element={<DrinkDetails />} />
-                            <Route path="/privacy" element={<Privacy />} />
-                            <Route path="/terms" element={<Terms />} />
-                            <Route path="/cookies" element={<Cookies />} />
-
-                            {/* ONLY GUEST */}
-                            <Route element={<GuestOnly />}>
-                                <Route path="/login" element={<Login />} />
-                                <Route path="/register" element={<Register />} />
-                            </Route>
-
-                            {/* ONLY USER */}
-                            <Route element={<RequireAuth />}>
-                                <Route path="/profile" element={<Profile />} />
-                            </Route>
-
-                            {/* ONLY ADMIN */}
-                            <Route element={<RequireAdmin />}>
-                                <Route path="/admin" element={<AdminHome />} />
-                                <Route path="/admin/pizzas" element={<PizzasAdmin />} />
-                                <Route path="/admin/pastas" element={<PastasAdmin />} />
-                                <Route path="/admin/drinks" element={<DrinksAdmin />} />
-                                <Route path="/admin/ingredients" element={<IngredientsAdmin />} />
-                                <Route path="/admin/ingredient-types" element={<IngredientTypes />} />
-                                <Route path="/admin/orders" element={<AdminOrders />} />
-                                <Route path="/admin/orders/:id" element={<AdminOrderDetails />} />
-                                <Route path="/admin/users" element={<UsersAdmin />} />
-                            </Route>
-                        </Routes>
-                    </main>
-                    <Footer />
+                    <AppRoutes />
                 </BrowserRouter>
             </AuthProvider>
         </CartProvider>

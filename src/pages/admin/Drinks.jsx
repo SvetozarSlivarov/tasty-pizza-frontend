@@ -236,7 +236,7 @@ export default function DrinksAdmin() {
                     </td>
                     <td className={styles.td}>{r.name}</td>
                     <td className={styles.td}>
-                      BGN {Number(r.basePrice ?? 0).toFixed(2)}
+                      EUR {Number(r.basePrice ?? 0).toFixed(2)}
                     </td>
                     <td className={styles.td}>
                       <div className={styles.row}>

@@ -210,3 +210,22 @@ cite{ display:block; margin-top: 10px; font-style: normal; color: rgba(var(--mut
     .hero-art{ margin-top: 20px; }
     .menu-preview .head{ flex-direction: column; }
 }
+.section-heading-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom: 20px;
+}
+
+.section-heading-row .section-title{
+    margin:0;
+}
+
+@media (max-width: 620px){
+    .section-heading-row{
+        align-items:flex-start;
+        flex-direction:column;
+        gap:8px;
+    }
+}

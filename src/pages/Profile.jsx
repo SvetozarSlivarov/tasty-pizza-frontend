@@ -103,7 +103,6 @@ export default function Profile() {
 
   const [ordersRaw, setOrdersRaw] = useState([]);
   const [status, setStatus] = useState("all"); // all | active | delivered | cancelled
-  const [sort, setSort] = useState("ordered_desc");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
@@ -164,14 +163,8 @@ export default function Profile() {
       list = list.filter((o) => normStatus(o.status) === "cancelled");
     }
 
-    list.sort((a, b) => {
-      const ta = a?.orderedAt ? new Date(a.orderedAt).getTime() : 0;
-      const tb = b?.orderedAt ? new Date(b.orderedAt).getTime() : 0;
-      return sort === "ordered_asc" ? ta - tb : tb - ta;
-    });
-
     return list;
-  }, [ordersRaw, status, sort]);
+  }, [ordersRaw, status]);
 
   async function handleReorder(orderId) {
   try {
@@ -292,10 +285,6 @@ export default function Profile() {
               ))}
             </div>
 
-            <select value={sort} onChange={(e) => setSort(e.target.value)}>
-              <option value="ordered_desc">Newest</option>
-              <option value="ordered_asc">Oldest</option>
-            </select>
           </div>
         </header>
 
@@ -389,12 +378,12 @@ export default function Profile() {
                         )}
                       </div>
 
-                      <div className="qty">Ã— {it.quantity}</div>
-                      <div className="price">{money(it.unitPrice)} BGN</div>
+                      <div className="qty">x {it.quantity}</div>
+                      <div className="price">{money(it.unitPrice)} EUR</div>
                     </li>
                   ))}
                 </ul>
-                <div className="total">{money(o.total)} BGN</div>
+                <div className="total">{money(o.total)} EUR</div>
 
                 {(o.address || o.phoneNumber) && (
                   <div className="order__delivery muted">

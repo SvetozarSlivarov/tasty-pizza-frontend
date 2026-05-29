@@ -232,7 +232,7 @@ export default function Orders() {
           </button>
 
           <span className={styles.mono}>
-            Page {page} / {totalPages} · Total {data?.total ?? 0}
+            Page {page} / {totalPages} - Total {data?.total ?? 0}
           </span>
 
           <button

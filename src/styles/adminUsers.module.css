@@ -322,3 +322,71 @@
 .zebra tbody tr:hover {
   background: rgba(110, 231, 255, 0.05);
 }
+
+/* Admin polish */
+.page {
+    --bg: rgb(16, 18, 24);
+    --panel: rgba(255,255,255,0.045);
+    --panel-2: rgba(255,255,255,0.025);
+    --text: #f4f6fb;
+    --muted: rgba(200,205,215,0.86);
+    --brand: rgb(255, 196, 0);
+    --brand-2: rgb(255, 79, 79);
+    --ring: 0 0 0 3px rgba(255,79,79,.24);
+    background:
+        radial-gradient(800px 360px at 100% -10%, rgba(255,196,0,.10), transparent 45%),
+        rgb(16, 18, 24);
+}
+
+.headerRow,
+.header {
+    padding: 18px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    box-shadow: 0 16px 40px rgba(0,0,0,.28);
+}
+
+.title {
+    background: none;
+    color: #fff;
+    font-size: clamp(24px, 3vw, 34px);
+}
+
+.panel,
+.tableWrap {
+    border-color: rgba(255,255,255,.12);
+    background: rgba(255,255,255,0.045);
+    box-shadow: 0 16px 40px rgba(0,0,0,.24);
+}
+
+.input {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,.14);
+}
+.input option { background: #111318; color: var(--text); }
+
+.btn {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.055);
+    border-color: rgba(255,255,255,.14);
+}
+
+.btnPrimary,
+.pageActive {
+    color: #191a1f;
+    background: linear-gradient(90deg, rgb(255,79,79), rgb(255,196,0));
+}
+
+.btnPrimary:hover,
+.pageActive:hover {
+    box-shadow: 0 8px 24px rgba(255,79,79,.18);
+}
+
+.th { background: rgba(255,255,255,.075); }
+.td { background: transparent; }
+.table tbody tr:nth-child(odd) .td { background: rgba(255,255,255,.018); }
+tr:hover .td { background: rgba(255,196,0,.055); }

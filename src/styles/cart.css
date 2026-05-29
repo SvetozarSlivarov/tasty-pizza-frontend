@@ -66,7 +66,16 @@
 .price { font-weight: 600; }
 .price .per { margin-left: .35rem; font-weight: 400; }
 
-.ci-actions { display:flex; align-items: start; }
+.ci-actions { display:flex; align-items: start; gap: 8px; }
+.cart-action-btn {
+    width: 36px;
+    height: 36px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    font-size: 18px;
+    text-decoration: none;
+}
 
 .cart-footer {
     padding: .9rem 1rem; border-top: 1px solid #24262b; display: grid; gap: .6rem;

@@ -179,3 +179,76 @@
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; }
 }
+
+/* Admin polish for order details */
+.page {
+  --pz-bg: rgb(16, 18, 24);
+  --pz-panel: rgba(255,255,255,0.045);
+  --pz-border: rgba(255,255,255,0.12);
+  --pz-text: #f4f6fb;
+  --pz-dim: rgba(200,205,215,0.86);
+  --pz-primary: rgb(255, 196, 0);
+  --pz-primary-600: rgb(235, 177, 0);
+  --pz-focus: 0 0 0 3px rgba(255,79,79,.24);
+  background:
+    radial-gradient(800px 360px at 100% -10%, rgba(255,196,0,.10), transparent 45%),
+    rgb(16, 18, 24);
+}
+
+.title,
+.topbar {
+  padding: 18px;
+  border: 1px solid var(--pz-border);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.04);
+  box-shadow: 0 16px 40px rgba(0,0,0,.28);
+}
+
+.title {
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.card,
+.tableWrap {
+  border-color: var(--pz-border);
+  background: rgba(255,255,255,0.045);
+  box-shadow: 0 16px 40px rgba(0,0,0,.24);
+}
+
+.backBtn,
+.actionBtn {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.055);
+  border-color: rgba(255,255,255,.14);
+}
+
+.actionBtn:hover:not(:disabled),
+.backBtn:hover {
+  background: rgba(255,255,255,.09);
+}
+
+.th {
+  background: rgba(255,255,255,.075);
+  color: rgba(200,205,215,.92);
+}
+
+.table tbody tr:nth-child(odd) .td {
+  background: rgba(255,255,255,.018);
+}
+
+.table tbody tr:hover .td {
+  background: rgba(255,196,0,.055);
+}
+
+.right {
+  color: rgb(255,196,0);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.thumb {
+  box-shadow: 0 8px 20px rgba(0,0,0,.28);
+}

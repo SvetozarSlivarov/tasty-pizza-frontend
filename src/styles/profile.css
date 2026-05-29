@@ -1,9 +1,32 @@
 .profile .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
 .profile .muted { color:#666; }
 .profile .orders__toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.profile .seg { background:#f3f3f3; border-radius:999px; padding:4px; display:inline-flex; }
-.profile .seg button { border:0; background:transparent; padding:6px 12px; border-radius:999px; cursor:pointer; }
-.profile .seg .active { background:#fff; box-shadow:0 0 0 1px #ddd; }
+.profile .seg {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px;
+    padding: 4px;
+    display: inline-flex;
+    gap: 4px;
+}
+.profile .seg button {
+    border: 0;
+    background: transparent;
+    color: rgba(200, 205, 215, 0.92);
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.profile .seg button:hover {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+}
+.profile .seg .active {
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 1px 0 rgba(0,0,0,0.28);
+}
 .order { border:1px solid #eee; border-radius:12px; padding:12px; margin:12px 0; }
 .order__head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .order .code { font-weight:600; margin-right:8px; }
@@ -37,7 +60,7 @@
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
 }
 .seg-text {
-    color: #22252a;
+    color: rgba(200, 205, 215, 0.92);
 }
 
 .seg button {
@@ -46,7 +69,7 @@
     border-radius: 999px;
     padding: 8px 14px;
     font-size: 14px;
-    color: #2f2f2f;
+    color: rgba(200, 205, 215, 0.92);
     background: transparent;
     cursor: pointer;
     transition: color .15s ease, background .15s ease, box-shadow .15s ease;
@@ -58,7 +81,7 @@
 
 .seg button.active {
     background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.10));
-    color: #2F2F2FFF;
+    color: #fff;
     box-shadow: 0 1px 0 rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.18);
 }
 
@@ -95,13 +118,6 @@
     align-items: center;
     gap: 10px;
 }
-.orders__toolbar .actions::after {
-    content: "▾";
-    margin-left: -26px;
-    pointer-events: none;
-    color: #cfcfcf;
-}
-
 .order {
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.03);

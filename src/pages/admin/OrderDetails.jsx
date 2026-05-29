@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   adminCancel,
@@ -10,11 +10,12 @@ import {
 import styles from "../../styles/OrderDetails.module.css";
 
 const fmtDate = (dt) => (dt ? new Date(dt).toLocaleString() : "-");
-const money = (v) => {
+
+function money(v) {
   if (v == null) return "0.00";
   const n = typeof v === "string" ? Number(v) : v;
   return Number.isFinite(n) ? n.toFixed(2) : String(v);
-};
+}
 
 export default function OrderDetails() {
   const { id } = useParams();
@@ -38,7 +39,10 @@ export default function OrderDetails() {
     }
   }
 
-  useEffect(() => { if (Number.isFinite(orderId)) load(); }, [orderId]); // eslint-disable-line
+  useEffect(() => {
+    if (Number.isFinite(orderId)) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId]);
 
   async function runAction(fn) {
     setActing(true);
@@ -62,7 +66,7 @@ export default function OrderDetails() {
   return (
     <div className={styles.page}>
       <div className={styles.topbar}>
-        <button className={styles.backBtn} onClick={() => navigate("/admin/orders")}>← Back</button>
+        <button className={styles.backBtn} onClick={() => navigate("/admin/orders")}>Back</button>
       </div>
 
       <h2 className={styles.title}>Order #{orderId}</h2>
@@ -107,7 +111,7 @@ export default function OrderDetails() {
                 {(order.statusHistory ?? []).length ? (
                   order.statusHistory.map((h, idx) => (
                     <li key={idx}>
-                      <b>{h.status}</b> — <span className={styles.subtle}>{fmtDate(h.changedAt)}</span>
+                      <b>{h.status}</b> - <span className={styles.subtle}>{fmtDate(h.changedAt)}</span>
                     </li>
                   ))
                 ) : (

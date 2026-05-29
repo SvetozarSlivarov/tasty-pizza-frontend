@@ -1,6 +1,7 @@
 import { http } from "./http";
 
 export const adminApi = {
+  async health() { return http.get("/admin/health"); },
   async listPizzas({ withVariants = true } = {}) { const qs = new URLSearchParams(); qs.set("withVariants", String(withVariants)); return http.get(`/pizzas?${qs}`); },
   async listDeletedPizzas({ withVariants = true } = {}) { const qs = new URLSearchParams(); qs.set("withVariants", String(withVariants)); return http.get(`/pizzas/deleted?${qs}`); },
   async getPizza(id) { return http.get(`/pizzas/${id}`); },

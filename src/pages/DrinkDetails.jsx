@@ -99,7 +99,7 @@ export default function DrinkDetails() {
         <h1 className={styles.title}>{drink.name}</h1>
         <p className={styles.desc}>{drink.description}</p>
 
-        <p className={styles.price}>Price: {price.toFixed(2)} BGN</p>
+        <p className={styles.price}>Price: {price.toFixed(2)} EUR</p>
 
         <button className={styles.btn} onClick={onAddToCart} disabled={!isAvailable}>
           {isAvailable ? "Add to cart" : "Unavailable"}

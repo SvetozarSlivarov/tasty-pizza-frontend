@@ -185,7 +185,7 @@ export default function Users() {
                         {me ? <span className={styles.muted}> (you)</span> : null}
                       </td>
                       <td className={`${styles.td} ${styles.ellipsis}`}>
-                        {u.fullname || <span className={styles.muted}>—</span>}
+                        {u.fullname || <span className={styles.muted}>-</span>}
                       </td>
 
                       <td className={styles.td}>

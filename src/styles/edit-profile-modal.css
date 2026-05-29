@@ -4,109 +4,337 @@
     display: grid;
     place-items: center;
     padding: 16px;
-    background: rgba(0,0,0,.45);
+    background: rgba(0, 0, 0, 0.58);
     z-index: 1000;
 }
 
 .epm-dialog {
-    width: 100%;
-    max-width: 560px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(0,0,0,.22);
+    width: min(100%, 600px);
+    max-height: min(760px, calc(100dvh - 32px));
     overflow: hidden;
+    background: rgb(16, 18, 24);
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+    display: grid;
+    grid-template-rows: auto 1fr;
 }
 
 .epm-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    border-bottom: 1px solid #eee;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
 }
 
 .epm-title {
     margin: 0;
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .epm-close {
+    width: 36px;
+    height: 36px;
     border: 0;
+    border-radius: 8px;
     background: transparent;
-    font-size: 22px;
+    color: rgba(200, 205, 215, 0.92);
+    font-size: 20px;
     line-height: 1;
     cursor: pointer;
-    padding: 4px 8px;
+}
+
+.epm-close:hover {
+    background: rgba(255,255,255,0.08);
+    color: #ffffff;
 }
 
 .epm-body {
-    padding: 16px;
+    overflow: auto;
+    padding: 18px;
 }
 
 .epm-form {
+    display: grid;
+    gap: 16px;
+}
+
+.epm-preview {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+}
+
+.epm-avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #e63946;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.epm-preview-name {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.epm-preview-user {
+    margin-top: 4px;
+    color: rgba(200, 205, 215, 0.88);
+    font-size: 14px;
+}
+
+.epm-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 12px;
+}
+
+.epm-tabs button {
+    height: 42px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: rgba(200, 205, 215, 0.9);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 700;
+}
+
+.epm-tabs button.active {
+    background: rgba(255,255,255,0.12);
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 1px 0 rgba(0,0,0,0.28);
+}
+
+.epm-panel {
+    display: grid;
+    gap: 14px;
 }
 
 .epm-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: grid;
+    gap: 7px;
 }
 
 .epm-label {
     font-size: 13px;
-    color: #555;
+    font-weight: 700;
+    color: rgba(200, 205, 215, 0.94);
 }
 
 .epm-input {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 10px 12px;
+    width: 100%;
+    min-width: 0;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 10px;
+    padding: 11px 12px;
     font-size: 14px;
     outline: none;
+    color: #ffffff;
+    background: rgba(255,255,255,0.06);
 }
+
 .epm-input:focus {
-    border-color: #111;
-    box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+    border-color: rgb(255, 79, 79);
+    box-shadow: 0 0 0 4px rgba(255, 79, 79, 0.16);
+}
+
+.epm-input--error {
+    border-color: #ef4444;
+}
+
+.epm-password {
+    position: relative;
+}
+
+.epm-password .epm-input {
+    padding-right: 48px;
+}
+
+.epm-password button {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    width: 36px;
+    height: 36px;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(200, 205, 215, 0.9);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+}
+
+.epm-password button:hover {
+    background: rgba(255,255,255,0.08);
+    color: #ffffff;
+}
+
+.epm-hint {
+    color: rgba(200, 205, 215, 0.86);
+    font-size: 12px;
+}
+
+.epm-hint--error {
+    color: #dc2626;
+}
+
+.epm-strength {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.epm-strength div {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.10);
+}
+
+.epm-strength span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: #94a3b8;
+    transition: width 160ms ease, background-color 160ms ease;
+}
+
+.epm-strength strong {
+    color: rgba(200, 205, 215, 0.9);
+    font-size: 12px;
+}
+
+.epm-strength[data-score="1"] span {
+    width: 25%;
+    background: #ef4444;
+}
+
+.epm-strength[data-score="2"] span,
+.epm-strength[data-score="3"] span {
+    width: 65%;
+    background: #f59e0b;
+}
+
+.epm-strength[data-score="4"] span,
+.epm-strength[data-score="5"] span {
+    width: 100%;
+    background: #16a34a;
+}
+
+.epm-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.92);
+    font-size: 14px;
+}
+
+.epm-check input {
+    width: 16px;
+    height: 16px;
+}
+
+.epm-check span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .epm-actions {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 4px;
+    padding-top: 4px;
+}
+
+.epm-status {
+    margin-right: auto;
+    color: rgba(200, 205, 215, 0.82);
+    font-size: 12px;
 }
 
 .epm-btn {
     border: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 10px 14px;
     font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
 }
 
+.epm-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .epm-btn--primary {
-    background: #111;
-    color: #fff;
+    background: #e63946;
+    color: #ffffff;
+}
+
+.epm-btn--primary:not(:disabled):hover {
+    background: #d62828;
 }
 
 .epm-btn--ghost {
-    background: #fff;
-    color: #111;
-    border: 1px solid #ddd;
+    background: transparent;
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.16);
+}
+
+.epm-btn--ghost:not(:disabled):hover {
+    background: rgba(255,255,255,0.08);
 }
 
 .epm-alert {
     margin: 0;
     padding: 10px 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 14px;
 }
+
 .epm-alert--error {
-    background: #ffe9e9;
-    color: #a40000;
-    border: 1px solid #ffd0d0;
+    background: rgba(255, 79, 79, 0.12);
+    color: #ffb4b4;
+    border: 1px solid rgba(255, 79, 79, 0.32);
+}
+
+@media (max-width: 520px) {
+    .epm-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .epm-status {
+        grid-column: 1 / -1;
+    }
 }

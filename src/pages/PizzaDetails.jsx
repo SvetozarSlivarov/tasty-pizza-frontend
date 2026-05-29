@@ -313,7 +313,7 @@ export default function PizzaDetails() {
                         </div>
 
                         <span className={styles.itemPrice}>
-                          {ing.extraPrice > 0 ? `+${ing.extraPrice.toFixed(2)} BGN` : "Free"}
+                          {ing.extraPrice > 0 ? `+${ing.extraPrice.toFixed(2)} EUR` : "Free"}
                         </span>
                       </li>
                     );
@@ -341,7 +341,7 @@ export default function PizzaDetails() {
                     {pizza.variants.map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.size} / {v.dough}
-                        {v.extraPrice > 0 ? ` (+${v.extraPrice.toFixed(2)} BGN)` : ""}
+                        {v.extraPrice > 0 ? ` (+${v.extraPrice.toFixed(2)} EUR)` : ""}
                       </option>
                     ))}
                   </select>
@@ -376,7 +376,7 @@ export default function PizzaDetails() {
                   <div className={styles.totalLabel}>Total</div>
                   <div className={styles.itemHint}>Preview price</div>
                 </div>
-                <div className={styles.totalValue}>{totalPrice.toFixed(2)} BGN</div>
+                <div className={styles.totalValue}>{totalPrice.toFixed(2)} EUR</div>
               </div>
 
               <div className={styles.actions}>

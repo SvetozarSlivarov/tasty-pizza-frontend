@@ -123,7 +123,7 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
 
             {/* Price */}
             <div>
-                <label className={styles.label}>Price (BGN)</label>
+                <label className={styles.label}>Price (EUR)</label>
                 <input
                     className={styles.input}
                     type="text"
@@ -137,7 +137,7 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
                     <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.basePrice}</div>
                 )}
                 <div className={styles.note}>
-                    Allowed range: {PRICE_MIN.toFixed(2)} – {PRICE_MAX.toFixed(2)} BGN
+                    Allowed range: {PRICE_MIN.toFixed(2)} – {PRICE_MAX.toFixed(2)} EUR
                 </div>
             </div>
 

@@ -189,7 +189,7 @@ export default function PastaDetails() {
                       <li key={ing.id} className={styles.item}>
                         <input className={styles.check} type="checkbox" checked={checked} onChange={() => toggleAdd(ing.id)} />
                         <div className={styles.itemTitle}><span className={styles.itemName}>{ing.name}</span></div>
-                        <span className={styles.itemPrice}>{ing.extraPrice > 0 ? `+${ing.extraPrice.toFixed(2)} BGN` : "Free"}</span>
+                        <span className={styles.itemPrice}>{ing.extraPrice > 0 ? `+${ing.extraPrice.toFixed(2)} EUR` : "Free"}</span>
                       </li>
                     );
                   })}
@@ -209,7 +209,7 @@ export default function PastaDetails() {
                 <select className={styles.select} value={sauceId ?? ""} onChange={(e) => setSauceId(Number(e.target.value))}>
                   {pasta.sauces.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} / {s.spicyLevel}{s.extraPrice > 0 ? ` (+${s.extraPrice.toFixed(2)} BGN)` : ""}
+                      {s.name} / {s.spicyLevel}{s.extraPrice > 0 ? ` (+${s.extraPrice.toFixed(2)} EUR)` : ""}
                     </option>
                   ))}
                 </select>
@@ -228,7 +228,7 @@ export default function PastaDetails() {
 
               <div className={styles.total}>
                 <div><div className={styles.totalLabel}>Total</div><div className={styles.itemHint}>Preview price</div></div>
-                <div className={styles.totalValue}>{totalPrice.toFixed(2)} BGN</div>
+                <div className={styles.totalValue}>{totalPrice.toFixed(2)} EUR</div>
               </div>
 
               <div className={styles.actions}>

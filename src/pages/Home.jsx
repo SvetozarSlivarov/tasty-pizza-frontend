@@ -5,7 +5,7 @@ import "../styles/home.css";
 import { catalogApi, productApi } from "../api/catalog";
 import { useCart } from "../context/CartContext";
 import QuickModal from "../components/QuickModal";
-import { isPizza } from "../utils/productType";
+import { isPizza, isPasta } from "../utils/productType";
 
 const FallbackImg = "images/fallBackImg.png";
 
@@ -20,6 +20,7 @@ export default function Home() {
   const cart = useCart();
 
   const [latestPizzas, setLatestPizzas] = useState([]);
+  const [latestPastas, setLatestPastas] = useState([]);
   const [latestDrinks, setLatestDrinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
@@ -27,7 +28,9 @@ export default function Home() {
   // Quick modal state
   const [quickItem, setQuickItem] = useState(null);
   const [quickPizza, setQuickPizza] = useState(null);
+  const [quickPasta, setQuickPasta] = useState(null);
   const [quickVariantId, setQuickVariantId] = useState(null);
+  const [quickSauceId, setQuickSauceId] = useState(null);
   const [quickLoading, setQuickLoading] = useState(false);
   const [quickError, setQuickError] = useState(null);
   const [adding, setAdding] = useState(false);
@@ -39,15 +42,17 @@ export default function Home() {
         setLoading(true);
         setErr(null);
 
-        const [pz, dr] = await Promise.all([
+        const [pz, pa, dr] = await Promise.all([
           catalogApi.pizzas(false),
-          catalogApi.drinks(true),
+          catalogApi.pastas(true),
+          catalogApi.drinks(),
         ]);
 
         if (!mounted) return;
 
         const byIdDesc = (a, b) => (b?.id ?? 0) - (a?.id ?? 0);
         setLatestPizzas((Array.isArray(pz) ? pz : []).slice().sort(byIdDesc).slice(0, 3));
+        setLatestPastas((Array.isArray(pa) ? pa : []).slice().sort(byIdDesc).slice(0, 3));
         setLatestDrinks((Array.isArray(dr) ? dr : []).slice().sort(byIdDesc).slice(0, 3));
       } catch (e) {
         console.error(e);
@@ -66,16 +71,21 @@ export default function Home() {
     setQuickItem(null);
     setQuickError(null);
     setQuickPizza(null);
+    setQuickPasta(null);
     setQuickVariantId(null);
+    setQuickSauceId(null);
   };
 
   const openQuickModal = async (item) => {
     setQuickItem(item);
     setQuickError(null);
     setQuickPizza(null);
+    setQuickPasta(null);
     setQuickVariantId(null);
+    setQuickSauceId(null);
 
     if (isPizza(item)) {
+
       try {
         setQuickLoading(true);
         const p = await productApi.pizza(item.id, true);
@@ -86,11 +96,22 @@ export default function Home() {
       } finally {
         setQuickLoading(false);
       }
+    } else if (isPasta(item)) {
+      try {
+        setQuickLoading(true);
+        const p = await productApi.pasta(item.id);
+        setQuickPasta(p);
+        if (p?.sauces?.length) setQuickSauceId(String(p.sauces[0].id));
+      } catch (e) {
+        setQuickError(e?.data?.message || e?.message || "Failed to load pasta details.");
+      } finally {
+        setQuickLoading(false);
+      }
     }
   };
 
   const goDetails = (item) => {
-    const path = isPizza(item) ? `/pizza/${item.id}` : `/drink/${item.id}`;
+    const path = isPizza(item) ? `/pizza/${item.id}` : isPasta(item) ? `/pasta/${item.id}` : `/drink/${item.id}`;
     navigate(path);
   };
 
@@ -116,6 +137,26 @@ export default function Home() {
           variantId,
           quantity: 1,
           removeIngredientIds: [],
+          addIngredientIds: [],
+          note: "",
+        });
+      } else if (isPasta(item)) {
+        let s = variant;
+
+        if (!s) {
+          const p = quickPasta?.id === item.id ? quickPasta : await productApi.pasta(item.id);
+          s = Array.isArray(p?.sauces) && p.sauces.length ? p.sauces[0] : null;
+        }
+
+        const pastaSauceId =
+          s?.id ?? (quickSauceId ? Number(quickSauceId) : null);
+
+        if (!pastaSauceId) throw new Error("Please select a pasta sauce.");
+
+        await cart.addPasta({
+          productId: item.id,
+          pastaSauceId,
+          quantity: 1,
           addIngredientIds: [],
           note: "",
         });
@@ -187,7 +228,12 @@ export default function Home() {
       {/* NEWEST PIZZAS */}
       <section className="section">
         <div className="container">
-          <h2 className="section-title">NEWEST PIZZAS</h2>
+          <div className="section-heading-row">
+            <h2 className="section-title">NEWEST PIZZAS</h2>
+            <Link to="/menu#pizzas" className="home-see-more-btn">
+              See all <span className="home-arr" aria-hidden="true">→</span>
+            </Link>
+          </div>
 
           {loading && (
             <div className="skeleton-grid">
@@ -226,7 +272,7 @@ export default function Home() {
                     {p.description && <p className="desc">{p.description}</p>}
                     <div className="meta">
                       <span className="price">
-                        from {money(p.basePrice ?? p.price)} BGN
+                        from {money(p.basePrice ?? p.price)} EUR
                       </span>
                       {p.spicyLevel && (
                         <span className="badge">Spicy level: {p.spicyLevel}</span>
@@ -240,10 +286,72 @@ export default function Home() {
         </div>
       </section>
 
+
+      {/* NEWEST PASTAS */}
+      <section className="section">
+        <div className="container">
+          <div className="section-heading-row">
+            <h2 className="section-title">NEWEST PASTAS</h2>
+            <Link to="/menu#pastas" className="home-see-more-btn">
+              See all <span className="home-arr" aria-hidden="true">→</span>
+            </Link>
+          </div>
+
+          {loading && (
+            <div className="skeleton-grid">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div className="skeleton-card" key={i} />
+              ))}
+            </div>
+          )}
+
+          {!loading && !err && (
+            <div className="grid">
+              {latestPastas.map((p) => (
+                <article
+                  className="card card--clickable"
+                  key={p.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openQuickModal(p)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") openQuickModal(p);
+                  }}
+                >
+                  <div className="thumb">
+                    <img
+                      src={p.imageUrl || FallbackImg}
+                      alt={p.name}
+                      loading="lazy"
+                      width={640}
+                      height={480}
+                    />
+                  </div>
+                  <div className="body">
+                    <h3 className="title">{p.name}</h3>
+                    {p.description && <p className="desc">{p.description}</p>}
+                    <div className="meta">
+                      <span className="price">{money(p.basePrice ?? p.price)} EUR</span>
+                      {p.spicyLevel && (
+                        <span className="badge">Spicy level: {p.spicyLevel}</span>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
       {/* NEWEST DRINKS */}
       <section className="section">
         <div className="container">
-          <h2 className="section-title">NEWEST DRINKS</h2>
+          <div className="section-heading-row">
+            <h2 className="section-title">NEWEST DRINKS</h2>
+            <Link to="/menu#drinks" className="home-see-more-btn">
+              See all <span className="home-arr" aria-hidden="true">→</span>
+            </Link>
+          </div>
 
           {loading && (
             <div className="skeleton-grid">
@@ -279,19 +387,13 @@ export default function Home() {
                     <h3 className="title">{d.name}</h3>
                     {d.description && <p className="desc">{d.description}</p>}
                     <div className="meta">
-                      <span className="price">{money(d.price ?? d.basePrice)} BGN</span>
+                      <span className="price">{money(d.price ?? d.basePrice)} EUR</span>
                     </div>
                   </div>
                 </article>
               ))}
             </div>
           )}
-
-          <div className="more-row">
-            <Link to="/menu" className="home-see-more-btn">
-              See all <span className="home-arr" aria-hidden="true">→</span>
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -314,15 +416,18 @@ export default function Home() {
         <QuickModal
           item={quickItem}
           pizzaDetails={quickPizza}
+          pastaDetails={quickPasta}
           selectedVariantId={quickVariantId}
           setSelectedVariantId={setQuickVariantId}
+          selectedSauceId={quickSauceId}
+          setSelectedSauceId={setQuickSauceId}
           onAdd={onAddToCart}
           onDetails={goDetails}
           onClose={closeQuickModal}
           loading={quickLoading}
           error={quickError}
           adding={adding}
-          currency="BGN"
+          currency="EUR"
           fallbackSrc={FallbackImg}
         />
       )}

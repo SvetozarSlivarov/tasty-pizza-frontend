@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { catalogApi, productApi } from "../api/catalog";
 import { useCart } from "../context/CartContext";
 import "../styles/menu.css";
@@ -64,7 +64,7 @@ function ProductCard({ item, onOpenQuick, ctaLabel = "Add", onAdd }) {
     <div className="card card--clickable" role="button" tabIndex={0} onClick={() => onOpenQuick?.(item)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpenQuick?.(item); }}>
       <div className="media"><img src={item?.imageUrl || FallbackImg} alt={item?.name} loading="lazy" /></div>
       <div className="body">
-        <div className="row1"><h4 className="title">{item?.name}</h4><span className="price">{price} BGN</span></div>
+        <div className="row1"><h4 className="title">{item?.name}</h4><span className="price">{price} EUR</span></div>
         {item?.description && <p className="desc">{item.description}</p>}
         <div className="row2"><button className="btn primary" onClick={onAddClick}>{ctaLabel}</button></div>
       </div>
@@ -94,6 +94,7 @@ function Section({ id, title, items, sortBy, setSortBy, emptyText, ctaLabel, onA
 
 export default function Menu() {
   const navigate = useNavigate();
+  const location = useLocation();
   const cart = useCart();
   const { pizzas, pastas, drinks, loading, error } = useCatalog();
   const [sortByPizzas, setSortByPizzas] = useState("new");
@@ -109,6 +110,12 @@ export default function Menu() {
   const [quickLoading, setQuickLoading] = useState(false);
   const [quickError, setQuickError] = useState(null);
   const [adding, setAdding] = useState(false);
+  useEffect(() => {
+    if (loading || !location.hash) return;
+    const id = location.hash.slice(1);
+    const node = document.getElementById(id);
+    if (node) node.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loading, location.hash]);
 
   const filter = (list, sortBy) => {
     const sorted = sortItems(list, sortBy);
@@ -182,6 +189,11 @@ export default function Menu() {
         <h2>Menu</h2>
         <p className="subtitle">Browse pizzas, pastas and drinks. Filter, sort and pick your favorites.</p>
         <div className="toolbar"><div className="search"><input type="search" placeholder="Search by name or description..." value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search in menu" /></div></div>
+        <nav className="menu-section-nav" aria-label="Menu sections">
+          <a href="#pizzas">Pizzas</a>
+          <a href="#pastas">Pastas</a>
+          <a href="#drinks">Drinks</a>
+        </nav>
       </header>
       {error && <div className="alert error">{error}</div>}
       {loading && <div className="skeleton-grid" aria-busy>{Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton-card" />)}</div>}
@@ -190,7 +202,7 @@ export default function Menu() {
         <Section id="pastas" title="Pastas" items={filteredPastas} sortBy={sortByPastas} setSortBy={setSortByPastas} emptyText="No pastas found." ctaLabel="Add pasta" onAdd={onAddToCart} openQuickModal={openQuickModal} />
         <Section id="drinks" title="Drinks" items={filteredDrinks} sortBy={sortByDrinks} setSortBy={setSortByDrinks} emptyText="No drinks found." ctaLabel="Add drink" onAdd={onAddToCart} openQuickModal={openQuickModal} />
       </>}
-      {quickItem && <QuickModal item={quickItem} pizzaDetails={quickPizza} pastaDetails={quickPasta} selectedVariantId={quickVariantId} setSelectedVariantId={setQuickVariantId} selectedSauceId={quickSauceId} setSelectedSauceId={setQuickSauceId} onAdd={onAddToCart} onDetails={goDetails} onClose={() => setQuickItem(null)} loading={quickLoading} error={quickError} adding={adding} currency="BGN" fallbackSrc={FallbackImg} />}
+      {quickItem && <QuickModal item={quickItem} pizzaDetails={quickPizza} pastaDetails={quickPasta} selectedVariantId={quickVariantId} setSelectedVariantId={setQuickVariantId} selectedSauceId={quickSauceId} setSelectedSauceId={setQuickSauceId} onAdd={onAddToCart} onDetails={goDetails} onClose={() => setQuickItem(null)} loading={quickLoading} error={quickError} adding={adding} currency="EUR" fallbackSrc={FallbackImg} />}
     </div>
   );
 }

@@ -72,3 +72,39 @@
     border-radius: 10px;
   }
 }
+
+/* Admin polish for compact reusable tables */
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.035);
+  box-shadow: 0 16px 40px rgba(0,0,0,.24);
+}
+
+.th {
+  background: rgba(255,255,255,.075);
+  color: rgba(200,205,215,.92);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.td:first-child {
+  color: rgba(200,205,215,.72);
+  font-variant-numeric: tabular-nums;
+}
+
+.table tbody tr:nth-child(odd) .td {
+  background: rgba(255,255,255,.018);
+}
+
+.table tr:hover .td {
+  background: rgba(255,196,0,.055);
+}
+
+.btn {
+  min-height: 36px;
+  background: rgba(255,255,255,.055);
+  border-color: rgba(255,255,255,.14);
+}

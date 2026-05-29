@@ -48,3 +48,29 @@ select option {
     color: #000;
 }
 .card--clickable { cursor: pointer; }
+.menu-section-nav{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
+}
+
+.menu-section-nav a{
+    text-decoration:none;
+    color:#fff;
+    font-weight:700;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.06);
+    border-radius:12px;
+    padding:9px 12px;
+}
+
+.menu-section-nav a:hover,
+.menu-section-nav a:focus-visible{
+    border-color:rgba(var(--accent2), .75);
+    outline:none;
+}
+
+.menu-page .section{
+    scroll-margin-top:84px;
+}

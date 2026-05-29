@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
 import "../styles/cart.css";
 import CheckoutModal from "../components/CheckoutModal";
@@ -94,13 +95,19 @@ export default function CartDrawer() {
                           <input type="number" min={1} value={it.qty} onChange={(e) => cart.updateQty(it.id, Number(e.target.value) || 1)} aria-label="Quantity" />
                           <button className="icon-btn" onClick={() => cart.updateQty(it.id, it.qty + 1)} aria-label="Increase" title="Increase">+</button>
                         </div>
-                        <div className="price">{lineTotal.toFixed(2)} BGN <span className="muted per">({ea.toFixed(2)} ea)</span></div>
+                        <div className="price">{lineTotal.toFixed(2)} EUR <span className="muted per">({ea.toFixed(2)} ea)</span></div>
                       </div>
                     </div>
 
                     <div className="ci-actions">
-                      {editPath && <Link to={editPath} className="icon-btn" onClick={cart.close} aria-label={`Edit ${badge.toLowerCase()}`} title="Edit" style={{ marginRight: 8 }}>Edit</Link>}
-                      <button className="icon-btn" onClick={() => cart.remove(it.id)} aria-label="Remove item" title="Remove">Del</button>
+                      {editPath && (
+                        <Link to={editPath} className="icon-btn cart-action-btn" onClick={cart.close} aria-label={`Edit ${badge.toLowerCase()}`} title="Edit">
+                          <FiEdit2 aria-hidden="true" />
+                        </Link>
+                      )}
+                      <button className="icon-btn cart-action-btn" onClick={() => cart.remove(it.id)} aria-label="Remove item" title="Remove">
+                        <FiTrash2 aria-hidden="true" />
+                      </button>
                     </div>
                   </li>
                 );
@@ -110,7 +117,7 @@ export default function CartDrawer() {
         </div>
 
         <footer className="cart-footer">
-          <div className="row"><span>Subtotal</span><strong>{cart.subtotal.toFixed(2)} BGN</strong></div>
+          <div className="row"><span>Subtotal</span><strong>{cart.subtotal.toFixed(2)} EUR</strong></div>
           <div className="row actions">
             <button className="btn outline" onClick={cart.clear} disabled={cart.items.length === 0}>Clear</button>
             <button className="btn" onClick={() => setOpenCheckout(true)} disabled={cart.items.length === 0}>Checkout</button>

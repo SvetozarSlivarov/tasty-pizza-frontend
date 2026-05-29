@@ -152,7 +152,7 @@ export default function Ingredients() {
       {error && <div className={styles.error}>{error}</div>}
 
       <form className={styles.card} onSubmit={submit}>
-        <div className={styles.grid2}>
+        <div className={styles.inlineFormRow}>
           <div className={styles.row}>
             <label className={styles.label}>Name</label>
             <input
@@ -180,26 +180,26 @@ export default function Ingredients() {
               ))}
             </select>
           </div>
-        </div>
 
-        <div className={styles.actions}>
-          <button
-            className={styles.btnPrimary}
-            disabled={busy || !name.trim() || !typeId}
-          >
-            {isEditing ? "Update" : "Create"}
-          </button>
-
-          {isEditing && (
+          <div className={styles.inlineFormActions}>
             <button
-              type="button"
-              className={styles.btn}
-              disabled={busy}
-              onClick={resetForm}
+              className={styles.btnPrimary}
+              disabled={busy || !name.trim() || !typeId}
             >
-              Cancel
+              {isEditing ? "Update" : "Create"}
             </button>
-          )}
+
+            {isEditing && (
+              <button
+                type="button"
+                className={styles.btn}
+                disabled={busy}
+                onClick={resetForm}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
       </form>
 
