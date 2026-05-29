@@ -1,70 +1,147 @@
-# Getting Started with Create React App
+# Tasty Pizza Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React frontend for the Tasty Pizza application. The app provides a public catalog and product details pages, authentication, profile management, a cart flow, and an admin area for managing menu items, ingredients, orders, and users.
 
-## Available Scripts
+## Tech Stack
 
-In the project directory, you can run:
+- React 19
+- React Router 7
+- Create React App / react-scripts
+- Fetch-based API client
+- JWT access token stored in `localStorage`
+- Cookie-based refresh flow
+- `react-hot-toast` for notifications
+- `react-icons` for UI icons
 
-### `npm start`
+## Requirements
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- Node.js and npm
+- Tasty Pizza backend running locally or reachable over HTTP
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+The default development proxy points API requests to:
 
-### `npm test`
+```text
+http://localhost:8080/api
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+You can override the API base URL with `REACT_APP_API_BASE`.
 
-### `npm run build`
+## Getting Started
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Install dependencies:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+npm install
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Start the development server:
 
-### `npm run eject`
+```bash
+npm start
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Open:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```text
+http://localhost:3000
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Build for production:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+npm run build
+```
 
-## Learn More
+Run tests in watch mode:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+npm test
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Environment
 
-### Code Splitting
+Create a local `.env` file only if the frontend should call a backend URL different from the CRA proxy:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```env
+REACT_APP_API_BASE=http://localhost:8080/api
+```
 
-### Analyzing the Bundle Size
+When `REACT_APP_API_BASE` is not set, requests use relative paths and Create React App forwards them through the `proxy` value in `package.json`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Main Routes
 
-### Making a Progressive Web App
+Public routes:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- `/` - home page
+- `/menu` - product catalog
+- `/pizza/:id` - pizza details and customization
+- `/pasta/:id` - pasta details and customization
+- `/drink/:id` - drink details
+- `/privacy` - privacy policy
+- `/terms` - terms page
+- `/cookies` - cookies policy
 
-### Advanced Configuration
+Guest-only routes:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- `/login`
+- `/register`
 
-### Deployment
+Authenticated user routes:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+- `/profile`
 
-### `npm run build` fails to minify
+Admin routes:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- `/admin` - admin dashboard
+- `/admin/pizzas`
+- `/admin/pastas`
+- `/admin/drinks`
+- `/admin/ingredients`
+- `/admin/ingredient-types`
+- `/admin/orders`
+- `/admin/orders/:id`
+- `/admin/users`
+
+## Project Structure
+
+```text
+src/
+  api/             API modules for auth, catalog, cart, orders, and admin flows
+  auth/            token refresh scheduling
+  components/      shared UI components such as navbar, footer, cart drawer, and cart button
+  context/         React providers for auth and cart state
+  pages/           public and user-facing pages
+  pages/admin/     admin management pages
+  routes/          route guards for guest, authenticated, and admin access
+```
+
+## API Client
+
+The shared API client lives in `src/api/http.js`.
+
+It handles:
+
+- JSON request and response handling
+- `Authorization: Bearer <token>` header injection
+- `credentials: "include"` for refresh cookies
+- request timeout handling
+- automatic access-token refresh after eligible `401` responses
+
+Authentication state is provided by `src/context/AuthContext.jsx`. The app starts a refresh scheduler and boots by calling `/users/me`.
+
+## Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm start` | Start the local development server |
+| `npm run build` | Create a production build in `build/` |
+| `npm test` | Run the CRA test runner |
+| `npm run eject` | Eject CRA configuration |
+
+## Notes for Development
+
+- Keep backend and frontend API paths aligned with the modules under `src/api/`.
+- Admin pages are protected by `RequireAdmin`.
+- Profile and other user-only flows are protected by `RequireAuth`.
+- Login and registration are wrapped by `GuestOnly`.
+- Cart state is available through `CartProvider` and rendered globally through `CartDrawer` and `CartFab`.
