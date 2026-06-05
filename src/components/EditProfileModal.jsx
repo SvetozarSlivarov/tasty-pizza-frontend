@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { FiEye, FiEyeOff, FiLock, FiShield, FiUser } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { authApi } from "../api/auth";
 import "../styles/edit-profile-modal.css";
 
@@ -98,6 +99,7 @@ function PasswordInput({
 
 function EditProfileForm({ initial, onClose, onSaved }) {
   const { updateAuth, logout } = useAuth();
+  const { t } = useLanguage();
 
   const initFullname = useMemo(() => normalizeStr(initial?.fullname), [initial]);
   const initUsername = useMemo(() => normalizeStr(initial?.username), [initial]);
@@ -149,18 +151,18 @@ function EditProfileForm({ initial, onClose, onSaved }) {
     switch (code) {
       case "USERNAME_TAKEN":
       case "username_taken":
-        return "This username is already taken.";
+        return t("This username is already taken.");
       case "BAD_CREDENTIALS":
       case "invalid_credentials":
-        return "Current password is wrong.";
+        return t("Current password is wrong.");
       case "invalid_username":
-        return "Username is invalid.";
+        return t("Username is invalid.");
       case "invalid_fullname":
-        return "Full name is invalid.";
+        return t("Full name is invalid.");
       case "weak_password":
-        return "Password must be at least 6 characters.";
+        return t("Password must be at least 6 characters.");
       default:
-        return "Failed to update profile.";
+        return t("Failed to update profile.");
     }
   }
 
@@ -168,13 +170,13 @@ function EditProfileForm({ initial, onClose, onSaved }) {
     e.preventDefault();
     setErr("");
 
-    if (!username) return setErr("Username is required.");
-    if (!fullname) return setErr("Full name is required.");
+    if (!username) return setErr(t("Username is required."));
+    if (!fullname) return setErr(t("Full name is required."));
 
     if (hasNewPassword) {
-      if (form.newPassword.trim().length < 6) return setErr("Password must be at least 6 characters.");
-      if (!form.currentPassword) return setErr("Current password is required to change password.");
-      if (form.newPassword !== form.confirmPassword) return setErr("Passwords do not match.");
+      if (form.newPassword.trim().length < 6) return setErr(t("Password must be at least 6 characters."));
+      if (!form.currentPassword) return setErr(t("Current password is required to change password."));
+      if (form.newPassword !== form.confirmPassword) return setErr(t("Passwords do not match."));
     }
 
     if (!hasChanges) {
@@ -229,29 +231,29 @@ function EditProfileForm({ initial, onClose, onSaved }) {
     <form className="epm-form" onSubmit={onSubmit}>
       {err && <p className="epm-alert epm-alert--error">{err}</p>}
 
-      <section className="epm-preview" aria-label="Profile preview">
+      <section className="epm-preview" aria-label={t("Profile preview")}>
         <div className="epm-avatar">{initials(fullname, username)}</div>
         <div>
-          <div className="epm-preview-name">{fullname || "Full name"}</div>
-          <div className="epm-preview-user">@{username || "username"}</div>
+          <div className="epm-preview-name">{fullname || t("Full name")}</div>
+          <div className="epm-preview-user">@{username || t("username", "username")}</div>
         </div>
       </section>
 
-      <div className="epm-tabs" role="tablist" aria-label="Profile editing sections">
+      <div className="epm-tabs" role="tablist" aria-label={t("Profile editing sections")}>
         <button type="button" className={tab === "account" ? "active" : ""} onClick={() => setTab("account")}>
           <FiUser aria-hidden="true" />
-          Account
+          {t("Account")}
         </button>
         <button type="button" className={tab === "security" ? "active" : ""} onClick={() => setTab("security")}>
           <FiLock aria-hidden="true" />
-          Security
+          {t("Security")}
         </button>
       </div>
 
       {tab === "account" && (
         <div className="epm-panel">
           <label className="epm-field">
-            <span className="epm-label">Full name</span>
+            <span className="epm-label">{t("Full name")}</span>
             <input
               className="epm-input"
               name="fullname"
@@ -264,7 +266,7 @@ function EditProfileForm({ initial, onClose, onSaved }) {
           </label>
 
           <label className="epm-field">
-            <span className="epm-label">Username</span>
+            <span className="epm-label">{t("Username")}</span>
             <input
               className="epm-input"
               name="username"
@@ -275,7 +277,7 @@ function EditProfileForm({ initial, onClose, onSaved }) {
               disabled={saving}
             />
             {usernameChanged && (
-              <span className="epm-hint">Changing username will log you out after saving.</span>
+              <span className="epm-hint">{t("Changing username will log you out after saving.")}</span>
             )}
           </label>
         </div>
@@ -284,11 +286,11 @@ function EditProfileForm({ initial, onClose, onSaved }) {
       {tab === "security" && (
         <div className="epm-panel">
           <PasswordInput
-            label="Current password"
+            label={t("Current password")}
             name="currentPassword"
             value={form.currentPassword}
             onChange={onChange}
-            placeholder={hasNewPassword ? "Required" : "Enter only if changing password"}
+            placeholder={hasNewPassword ? t("Required") : t("Enter only if changing password")}
             autoComplete="current-password"
             disabled={saving}
             visible={showPassword.currentPassword}
@@ -296,11 +298,11 @@ function EditProfileForm({ initial, onClose, onSaved }) {
           />
 
           <PasswordInput
-            label="New password"
+            label={t("New password")}
             name="newPassword"
             value={form.newPassword}
             onChange={onChange}
-            placeholder="Leave empty to keep current"
+            placeholder={t("Leave empty to keep current")}
             autoComplete="new-password"
             disabled={saving}
             invalid={mismatch}
@@ -312,15 +314,15 @@ function EditProfileForm({ initial, onClose, onSaved }) {
             <div>
               <span />
             </div>
-            <strong>{strength.label}</strong>
+            <strong>{t(strength.label)}</strong>
           </div>
 
           <PasswordInput
-            label="Confirm new password"
+            label={t("Confirm new password")}
             name="confirmPassword"
             value={form.confirmPassword}
             onChange={onChange}
-            placeholder="Repeat new password"
+            placeholder={t("Repeat new password")}
             autoComplete="new-password"
             disabled={saving}
             invalid={mismatch}
@@ -328,7 +330,7 @@ function EditProfileForm({ initial, onClose, onSaved }) {
             onToggle={() => togglePassword("confirmPassword")}
           />
 
-          {mismatch && <span className="epm-hint epm-hint--error">Passwords do not match.</span>}
+          {mismatch && <span className="epm-hint epm-hint--error">{t("Passwords do not match.")}</span>}
 
           <label className="epm-check">
             <input
@@ -340,19 +342,19 @@ function EditProfileForm({ initial, onClose, onSaved }) {
             />
             <span>
               <FiShield aria-hidden="true" />
-              Logout from other devices
+              {t("Logout from other devices")}
             </span>
           </label>
         </div>
       )}
 
       <div className="epm-actions">
-        <div className="epm-status">{hasChanges ? "Unsaved changes" : "No changes yet"}</div>
+        <div className="epm-status">{hasChanges ? t("Unsaved changes") : t("No changes yet")}</div>
         <button type="button" className="epm-btn epm-btn--ghost" onClick={onClose} disabled={saving}>
-          Cancel
+          {t("Cancel")}
         </button>
         <button type="submit" className="epm-btn epm-btn--primary" disabled={saving || mismatch || !hasChanges}>
-          {saving ? "Saving..." : "Save changes"}
+          {saving ? t("Saving...") : t("Save changes")}
         </button>
       </div>
     </form>
@@ -360,8 +362,9 @@ function EditProfileForm({ initial, onClose, onSaved }) {
 }
 
 export default function EditProfileModal({ open, onClose, initial, onSaved }) {
+  const { t } = useLanguage();
   return (
-    <EpmModal open={open} title="Edit Profile" onClose={onClose}>
+    <EpmModal open={open} title={t("Edit Profile")} onClose={onClose}>
       <EditProfileForm initial={initial} onClose={onClose} onSaved={onSaved} />
     </EpmModal>
   );

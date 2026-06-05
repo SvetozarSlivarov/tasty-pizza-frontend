@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { isPizza, isPasta } from "../utils/productType";
+import { useLanguage } from "../context/LanguageContext";
 
 const DEFAULT_FALLBACK = "images/fallBackImg.png";
 
@@ -25,6 +26,7 @@ export default function QuickModal({
     currency = "EUR",
     fallbackSrc = DEFAULT_FALLBACK,
 }) {
+    const { t, enumLabel } = useLanguage();
     const itemIsPizza = isPizza(item);
     const itemIsPasta = isPasta(item);
 
@@ -42,8 +44,8 @@ export default function QuickModal({
     const extra = itemIsPizza ? Number(selectedVariant?.extraPrice || 0) : itemIsPasta ? Number(selectedSauce?.extraPrice || 0) : 0;
     const finalPrice = base + extra;
 
-    const variantLabel = (v) => v?.name || [v?.size, v?.dough].filter(Boolean).join(" / ");
-    const sauceLabel = (s) => [s?.ingredientName || s?.name, s?.spicyLevel].filter(Boolean).join(" / ");
+    const variantLabel = (v) => v?.name || [enumLabel(v?.size), enumLabel(v?.dough)].filter(Boolean).join(" / ");
+    const sauceLabel = (s) => [s?.ingredientName || s?.name, enumLabel(s?.spicyLevel)].filter(Boolean).join(" / ");
 
     useEffect(() => {
         const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
@@ -54,7 +56,7 @@ export default function QuickModal({
     return (
         <div className="modal-backdrop" onClick={onClose}>
             <div className="modal-window" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-                <button className="modal-close" onClick={onClose} aria-label="Close">x</button>
+                <button className="modal-close" onClick={onClose} aria-label={t("Close")}>x</button>
 
                 <div className="modal-header">
                     <img src={item?.imageUrl || fallbackSrc} alt={item?.name} />
@@ -64,7 +66,7 @@ export default function QuickModal({
                     </div>
                 </div>
 
-                {loading && <p>Loading...</p>}
+                {loading && <p>{t("Loading...")}</p>}
                 {error && <p className="alert error">{error}</p>}
 
                 {itemIsPizza && !loading && !error && (
@@ -72,7 +74,7 @@ export default function QuickModal({
                         {pizzaDetails?.variants?.length ? (
                             <>
                                 <label className="block">
-                                    Variant:
+                                    {t("Variant")}:
                                     <select value={selectedVariantId ?? ""} onChange={(e) => setSelectedVariantId?.(e.target.value)}>
                                         {pizzaDetails.variants.map((v) => (
                                             <option className="modal-options" key={v.id} value={v.id}>
@@ -81,9 +83,9 @@ export default function QuickModal({
                                         ))}
                                     </select>
                                 </label>
-                                <div className="price-row"><span>Total:</span><strong>{formatMoney(finalPrice, currency)}</strong></div>
+                                <div className="price-row"><span>{t("Total")}:</span><strong>{formatMoney(finalPrice, currency)}</strong></div>
                             </>
-                        ) : <p className="muted">No variants available.</p>}
+                        ) : <p className="muted">{t("No variants available.")}</p>}
                     </div>
                 )}
 
@@ -92,7 +94,7 @@ export default function QuickModal({
                         {pastaDetails?.sauces?.length ? (
                             <>
                                 <label className="block">
-                                    Sauce:
+                                    {t("Sauce")}:
                                     <select value={selectedSauceId ?? ""} onChange={(e) => setSelectedSauceId?.(e.target.value)}>
                                         {pastaDetails.sauces.map((s) => (
                                             <option className="modal-options" key={s.id} value={s.id}>
@@ -101,21 +103,21 @@ export default function QuickModal({
                                         ))}
                                     </select>
                                 </label>
-                                <div className="price-row"><span>Total:</span><strong>{formatMoney(finalPrice, currency)}</strong></div>
+                                <div className="price-row"><span>{t("Total")}:</span><strong>{formatMoney(finalPrice, currency)}</strong></div>
                             </>
-                        ) : <p className="muted">No sauces available.</p>}
+                        ) : <p className="muted">{t("No sauces available.")}</p>}
                     </div>
                 )}
 
                 {!itemIsPizza && !itemIsPasta && !loading && !error && (
-                    <div className="modal-body"><div className="price-row"><span>Price:</span><strong>{formatMoney(item?.price ?? item?.basePrice, currency)}</strong></div></div>
+                    <div className="modal-body"><div className="price-row"><span>{t("Price")}:</span><strong>{formatMoney(item?.price ?? item?.basePrice, currency)}</strong></div></div>
                 )}
 
                 <div className="modal-actions">
                     <button className="btn primary" onClick={() => onAdd?.(item, itemIsPizza ? selectedVariant : itemIsPasta ? selectedSauce : null)} disabled={loading || adding}>
-                        {adding ? "Adding..." : "Add to cart"}
+                        {adding ? t("Adding...") : t("Add to cart")}
                     </button>
-                    <button className="btn outline" onClick={() => onDetails?.(item)}>Details</button>
+                    <button className="btn outline" onClick={() => onDetails?.(item)}>{t("Details")}</button>
                 </div>
             </div>
         </div>

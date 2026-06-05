@@ -13,7 +13,7 @@ function toQuery(params = {}) {
   return qs ? `?${qs}` : "";
 }
 
-export async function adminListOrders({ status = "all", q = "", userId = null, page = 1, size = 20 } = {}) {
+export async function adminListOrders({ status = "all", q = "", userId = null, page = 1, size = 20, lang = "en" } = {}) {
   const backendPage = Math.max(0, (page ?? 1) - 1);
 
   const query = toQuery({
@@ -22,13 +22,14 @@ export async function adminListOrders({ status = "all", q = "", userId = null, p
     userId: userId ?? undefined,
     page: backendPage,
     size,
+    lang,
   });
 
   return http.get(`/admin/orders${query}`);
 }
 
-export async function adminGetOrder(id) {
-  return http.get(`/admin/orders/${id}`);
+export async function adminGetOrder(id, lang = "en") {
+  return http.get(`/admin/orders/${id}${toQuery({ lang })}`);
 }
 
 export async function adminStartPreparing(id) {

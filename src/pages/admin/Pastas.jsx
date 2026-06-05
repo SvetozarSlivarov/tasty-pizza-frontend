@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "../../styles/Pizzas.module.css";
 import { adminApi } from "../../api/admin";
+import { useLanguage } from "../../context/LanguageContext";
 import PastaForm, { normalizePasta } from "./components/PastaForm";
 import Modal from "./components/Modal";
 
 export default function PastasAdmin() {
+  const { language, t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -18,16 +20,16 @@ export default function PastasAdmin() {
     setLoading(true);
     setError(null);
     try {
-      const list = nextView === "deleted" ? await adminApi.listDeletedPastas({ withDetails: true }) : await adminApi.listPastas({ withDetails: true });
+      const list = nextView === "deleted" ? await adminApi.listDeletedPastas({ withDetails: true, lang: language }) : await adminApi.listPastas({ withDetails: true, lang: language });
       setRows(Array.isArray(list) ? list : []);
     } catch (e) {
-      setError(e?.message || "Failed to load pastas");
+      setError(e?.message || t("Failed to load pastas"));
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { setQ(""); load(view); }, [view]);
+  useEffect(() => { setQ(""); load(view); }, [view, language]);
 
   const filteredRows = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -38,7 +40,7 @@ export default function PastasAdmin() {
   async function onEditClick(row) {
     setBusy(true);
     try {
-      const full = await adminApi.getPasta(row.id);
+      const full = await adminApi.getPasta(row.id, language);
       setEditing({ id: full?.id ?? row.id, ...normalizePasta(full) });
     } catch (_) {
       setEditing({ id: row.id, ...normalizePasta(row) });
@@ -48,69 +50,69 @@ export default function PastasAdmin() {
   }
 
   async function onDelete(id) {
-    if (!window.confirm("Delete this pasta? (soft delete)")) return;
+    if (!window.confirm(t("Delete this pasta? (soft delete)"))) return;
     setBusy(true);
     try { await adminApi.deletePasta(id); setView("active"); await load("active"); }
-    catch (e) { alert(e?.message || "Delete failed"); }
+    catch (e) { alert(e?.message || t("Delete failed")); }
     finally { setBusy(false); }
   }
 
   async function onRestore(id) {
     setBusy(true);
     try { await adminApi.restorePasta(id); await load(view); }
-    catch (e) { alert(e?.message || "Restore failed"); }
+    catch (e) { alert(e?.message || t("Restore failed")); }
     finally { setBusy(false); }
   }
 
   async function handleCreate(payload) {
     setBusy(true);
     try { await adminApi.createPasta(payload); setCreating(false); setView("active"); await load("active"); }
-    catch (e) { alert(e?.message || "Create failed"); }
+    catch (e) { alert(e?.message || t("Create failed")); }
     finally { setBusy(false); }
   }
 
   async function handleUpdate(id, payload) {
     setBusy(true);
     try { await adminApi.updatePasta(id, payload); setEditing(null); await load(view); }
-    catch (e) { alert(e?.message || "Update failed"); }
+    catch (e) { alert(e?.message || t("Update failed")); }
     finally { setBusy(false); }
   }
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div className={styles.title}>Pastas</div>
+        <div className={styles.title}>{t("Pastas")}</div>
         <div className={styles.actions}>
           <div style={{ display: "flex", gap: 8 }}>
-            <button className={styles.btn} onClick={() => setView("active")} disabled={busy || view === "active"}>Active</button>
-            <button className={styles.btn} onClick={() => setView("deleted")} disabled={busy || view === "deleted"}>Deleted</button>
+            <button className={styles.btn} onClick={() => setView("active")} disabled={busy || view === "active"}>{t("Active")}</button>
+            <button className={styles.btn} onClick={() => setView("deleted")} disabled={busy || view === "deleted"}>{t("Deleted")}</button>
           </div>
-          <input className={styles.input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name..." disabled={busy || loading} style={{ maxWidth: 200 }} />
-          {view === "active" && <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setCreating(true)} disabled={busy}>+ New pasta</button>}
+          <input className={styles.input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search by name...")} disabled={busy || loading} style={{ maxWidth: 200 }} />
+          {view === "active" && <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setCreating(true)} disabled={busy}>+ {t("New pasta")}</button>}
         </div>
       </div>
 
-      {error && <div className={`${styles.panel} ${styles.error}`}>Error: {error}</div>}
+      {error && <div className={`${styles.panel} ${styles.error}`}>{t("Error")}: {error}</div>}
       <div className={styles.tableWrap}>
         <table className={styles.table}>
-          <thead><tr><th className={styles.th}>ID</th><th className={styles.th}>Image</th><th className={styles.th}>Name</th><th className={styles.th}>Price</th><th className={styles.th}>Sauces</th><th className={styles.th}>Actions</th></tr></thead>
+          <thead><tr><th className={styles.th}>ID</th><th className={styles.th}>{t("Image")}</th><th className={styles.th}>{t("Name")}</th><th className={styles.th}>{t("Price")}</th><th className={styles.th}>{t("Sauces")}</th><th className={styles.th}>{t("Actions")}</th></tr></thead>
           <tbody>
-            {loading ? <tr><td className={styles.td} colSpan={6}>Loading...</td></tr> : filteredRows?.length ? filteredRows.map((r) => (
+            {loading ? <tr><td className={styles.td} colSpan={6}>{t("Loading...")}</td></tr> : filteredRows?.length ? filteredRows.map((r) => (
               <tr key={r.id} className={view === "deleted" ? styles.rowMuted : undefined}>
                 <td className={styles.td}>{r.id}</td>
-                <td className={styles.td}>{r.imageUrl ? <img className={styles.img} src={r.imageUrl} alt={r.name} /> : <span className={styles.note}>no image</span>}</td>
+                <td className={styles.td}>{r.imageUrl ? <img className={styles.img} src={r.imageUrl} alt={r.name} /> : <span className={styles.note}>{t("no image")}</span>}</td>
                 <td className={styles.td}>{r.name}</td>
                 <td className={styles.td}>{typeof r.basePrice === "number" ? r.basePrice.toFixed(2) : r.basePrice}</td>
                 <td className={styles.td}>{Array.isArray(r.sauces) ? r.sauces.length : 0}</td>
-                <td className={styles.td}><div className={styles.row}>{view === "active" ? <><button className={styles.btn} onClick={() => onEditClick(r)} disabled={busy}>Edit</button><button className={styles.btn} onClick={() => onDelete(r.id)} disabled={busy}>Delete</button></> : <button className={styles.btn} onClick={() => onRestore(r.id)} disabled={busy}>Restore</button>}</div></td>
+                <td className={styles.td}><div className={styles.row}>{view === "active" ? <><button className={styles.btn} onClick={() => onEditClick(r)} disabled={busy}>{t("Edit")}</button><button className={styles.btn} onClick={() => onDelete(r.id)} disabled={busy}>{t("Delete")}</button></> : <button className={styles.btn} onClick={() => onRestore(r.id)} disabled={busy}>{t("Restore")}</button>}</div></td>
               </tr>
-            )) : <tr><td className={styles.td} colSpan={6}>{q.trim() ? "No matching pastas." : "No records."}</td></tr>}
+            )) : <tr><td className={styles.td} colSpan={6}>{q.trim() ? t("No matching pastas.") : t("No records.")}</td></tr>}
           </tbody>
         </table>
       </div>
 
-      <Modal title="Create pasta" isOpen={creating} onClose={() => setCreating(false)}><PastaForm mode="create" busy={busy} onCancel={() => setCreating(false)} onSubmit={handleCreate} /></Modal>
-      <Modal title="Edit pasta" isOpen={Boolean(editing)} onClose={() => setEditing(null)}>{editing && <PastaForm mode="edit" busy={busy} initial={editing} onCancel={() => setEditing(null)} onSubmit={(payload) => handleUpdate(editing.id, payload)} />}</Modal>
+      <Modal title={t("Create pasta")} isOpen={creating} onClose={() => setCreating(false)}><PastaForm mode="create" busy={busy} onCancel={() => setCreating(false)} onSubmit={handleCreate} language={language} /></Modal>
+      <Modal title={t("Edit pasta")} isOpen={Boolean(editing)} onClose={() => setEditing(null)}>{editing && <PastaForm mode="edit" busy={busy} initial={editing} onCancel={() => setEditing(null)} onSubmit={(payload) => handleUpdate(editing.id, payload)} language={language} />}</Modal>
     </div>
   );
 }

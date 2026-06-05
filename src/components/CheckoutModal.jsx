@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function CheckoutModal({ open, onClose, onCheckout }) {
+    const { t } = useLanguage();
     const [phone, setPhone] = useState("");
     const [address, setAddress] = useState("");
     const [loading, setLoading] = useState(false);
@@ -21,15 +23,15 @@ export default function CheckoutModal({ open, onClose, onCheckout }) {
         const phoneRegex = /^(?:\+359|0)(87|88|89|98|99)\d{7}$/;
 
         if (!phone.trim()) {
-            errs.phone = "Please enter your phone number.";
+            errs.phone = t("Please enter your phone number.");
         } else if (!phoneRegex.test(phone.replace(/\s+/g, ""))) {
-            errs.phone = "Invalid mobile number. Example: +359881234567";
+            errs.phone = t("Invalid mobile number. Example: +359881234567");
         }
 
         if (!address.trim()) {
-            errs.address = "Please enter your delivery address.";
+            errs.address = t("Please enter your delivery address.");
         } else if (address.trim().length < 5) {
-            errs.address = "Address is too short.";
+            errs.address = t("Address is too short.");
         }
 
         setErrors(errs);
@@ -45,7 +47,7 @@ export default function CheckoutModal({ open, onClose, onCheckout }) {
             await onCheckout({ phone: phone.trim(), address: address.trim() });
             onClose();
         } catch (err) {
-            alert(err?.data?.error || err?.message || "Checkout failed");
+            alert(err?.data?.error || err?.message || t("Checkout failed"));
         } finally {
             setLoading(false);
         }
@@ -63,15 +65,15 @@ export default function CheckoutModal({ open, onClose, onCheckout }) {
                 onClick={(e) => e.stopPropagation()}
             >
                 <header className="modal-header">
-                    <h3 id="checkout-title">Checkout</h3>
-                    <button className="icon-btn" aria-label="Close" onClick={onClose}>
+                    <h3 id="checkout-title">{t("Checkout")}</h3>
+                    <button className="icon-btn" aria-label={t("Close")} onClick={onClose}>
                         ✕
                     </button>
                 </header>
 
                 <form className="modal-body" onSubmit={handleSubmit}>
                     <label className="field">
-                        <span>Phone</span>
+                        <span>{t("Phone")}</span>
                         <input
                             type="tel"
                             placeholder="+359881234567"
@@ -83,9 +85,9 @@ export default function CheckoutModal({ open, onClose, onCheckout }) {
                     </label>
 
                     <label className="field">
-                        <span>Delivery address</span>
+                        <span>{t("Delivery address")}</span>
                         <textarea
-                            placeholder="Street, building, floor, apartment"
+                            placeholder={t("Street, building, floor, apartment")}
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
                             rows={3}
@@ -103,10 +105,10 @@ export default function CheckoutModal({ open, onClose, onCheckout }) {
                             onClick={onClose}
                             disabled={loading}
                         >
-                            Cancel
+                            {t("Cancel")}
                         </button>
                         <button type="submit" className="btn" disabled={loading}>
-                            {loading ? "Processing..." : "Confirm order"}
+                            {loading ? t("Processing...") : t("Confirm order")}
                         </button>
                     </footer>
                 </form>

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function SuccessCelebration({ onDone }) {
+    const { t } = useLanguage();
     const canvasRef = useRef(null);
     const rafRef = useRef(0);
 
@@ -97,7 +99,7 @@ export default function SuccessCelebration({ onDone }) {
                         strokeLinecap="round"
                     />
                 </svg>
-                <div className="celebrate-text">Order placed!</div>
+                <div className="celebrate-text">{t("Order placed!")}</div>
             </div>
         </div>
     );

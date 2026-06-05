@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import "../styles/register.css";
 
 export default function Register() {
@@ -15,6 +16,7 @@ export default function Register() {
     const [showPw2, setShowPw2] = useState(false);
     const [error, setError] = useState("");
     const { register, loading } = useAuth();
+    const { t } = useLanguage();
     const nav = useNavigate();
 
     const onSubmit = async (e) => {
@@ -22,19 +24,19 @@ export default function Register() {
         setError("");
 
         if (form.password.length < 6) {
-            setError("Password must be at least 6 characters.");
+            setError(t("Password must be at least 6 characters."));
             return;
         }
         if (form.password !== form.confirm) {
-            setError("Passwords do not match.");
+            setError(t("Passwords do not match."));
             return;
         }
         if (form.fullname.trim().length < 6){
-            setError("Full name must be at least 6 characters.");
+            setError(t("Full name must be at least 6 characters."));
             return
         }
         if(form.username.trim().length < 3){
-            setError("Username must be at least 3 characters.")
+            setError(t("Username must be at least 3 characters."))
         }
 
         const res = await register({
@@ -44,17 +46,17 @@ export default function Register() {
         });
 
         if (res.ok) nav("/", { replace: true });
-        else setError(res.message || "Registration failed");
+        else setError(res.message || t("Registration failed"));
     };
 
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <h2>Create account</h2>
-                <p className="muted">Join us for fast & tasty pizza.</p>
+                <h2>{t("Create account")}</h2>
+                <p className="muted">{t("Join us for fast & tasty pizza.")}</p>
 
                 <form onSubmit={onSubmit} className="auth-form" noValidate>
-                    <label htmlFor="fullname">Full name</label>
+                    <label htmlFor="fullname">{t("Full name")}</label>
                     <input
                         id="fullname"
                         name="fullname"
@@ -65,7 +67,7 @@ export default function Register() {
                         onChange={(e) => setForm({ ...form, fullname: e.target.value })}
                     />
 
-                    <label htmlFor="username">Username</label>
+                    <label htmlFor="username">{t("Username")}</label>
                     <input
                         id="username"
                         name="username"
@@ -76,7 +78,7 @@ export default function Register() {
                         onChange={(e) => setForm({ ...form, username: e.target.value })}
                     />
 
-                    <label htmlFor="password">Password</label>
+                    <label htmlFor="password">{t("Password")}</label>
                     <div className="input-wrap">
                         <input
                             id="password"
@@ -91,14 +93,14 @@ export default function Register() {
                         <button
                             type="button"
                             className="pw-toggle"
-                            aria-label={showPw ? "Hide password" : "Show password"}
+                            aria-label={showPw ? t("Hide password") : t("Show password")}
                             onClick={() => setShowPw((v) => !v)}
                         >
                             {showPw ? <FiEyeOff /> : <FiEye />}
                         </button>
                     </div>
 
-                    <label htmlFor="confirm">Confirm password</label>
+                    <label htmlFor="confirm">{t("Confirm password")}</label>
                     <div className="input-wrap">
                         <input
                             id="confirm"
@@ -113,7 +115,7 @@ export default function Register() {
                         <button
                             type="button"
                             className="pw-toggle"
-                            aria-label={showPw2 ? "Hide password" : "Show password"}
+                            aria-label={showPw2 ? t("Hide password") : t("Show password")}
                             onClick={() => setShowPw2((v) => !v)}
                         >
                             {showPw2 ? <FiEyeOff /> : <FiEye />}
@@ -123,12 +125,12 @@ export default function Register() {
                     {error && <p className="error">{error}</p>}
 
                     <button className="btn primary" type="submit" disabled={loading}>
-                        {loading ? "Creating..." : "Create account"}
+                        {loading ? t("Creating...") : t("Create account")}
                     </button>
                 </form>
 
                 <p className="switch">
-                    Already have an account? <Link to="/login">Sign in</Link>
+                    {t("Already have an account?")} <Link to="/login">{t("Sign in")}</Link>
                 </p>
             </div>
         </div>

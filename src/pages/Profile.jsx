@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { ordersApi } from "../api/orders";
 import { useCart } from "../context/CartContext";
 import { ingredientsApi } from "../api/ingredients";
@@ -27,9 +28,6 @@ const STATUS_LABEL = {
   cancelled: "Cancelled",
 };
 
-// Visual flow on profile
-const STATUS_STEPS = ["ordered", "preparing", "out_for_delivery", "delivered", "cancelled"];
-
 // "Active" filter = enum active states
 const ACTIVE_SET = new Set(["ordered", "preparing", "out_for_delivery"]);
 
@@ -41,64 +39,15 @@ function money(v) {
 }
 
 function StatusChip({ status }) {
+  const { t } = useLanguage();
   const s = normStatus(status);
-  const label = STATUS_LABEL[s] ?? String(status ?? "â€”");
-  return <span className={`chip chip--${s}`}>{label}</span>;
-}
-
-function Stage({ label, ts, done }) {
-  return (
-    <div className={`stage ${done ? "done" : ""}`}>
-      <div className="dot" />
-      <div className="meta">
-        <div className="label">{label}</div>
-        <div className="ts">{ts ? new Date(ts).toLocaleString() : "â€”"}</div>
-      </div>
-    </div>
-  );
-}
-
-/** Build a timeline only from CURRENT status (no timestamps needed). */
-function buildTimelineFromCurrentStatus(orderStatus) {
-  const s = normStatus(orderStatus);
-
-  // Special case: CANCELLED => show only cancelled as done
-  if (s === "cancelled") {
-    return STATUS_STEPS.map((step) => ({
-      step,
-      done: step === "cancelled",
-      ts: null,
-    }));
-  }
-
-  const idx = STATUS_STEPS.indexOf(s); // ordered=0, ... delivered=3
-  return STATUS_STEPS.map((step, i) => ({
-    step,
-    done: idx >= 0 ? i <= idx : false,
-    ts: null,
-  }));
-}
-
-/** Build timeline from statusHistory endpoint (with timestamps). */
-function buildTimelineFromHistory(history) {
-  // Keep first timestamp per status (ascending from backend recommended)
-  const byStatus = new Map();
-  for (const h of history || []) {
-    const key = normStatus(h?.status);
-    const ts = h?.changedAt ?? h?.changed_at ?? null;
-    if (key && !byStatus.has(key)) byStatus.set(key, ts);
-  }
-
-  // If cancelled exists in history, we still show all steps but cancelled will have ts.
-  return STATUS_STEPS.map((step) => ({
-    step,
-    ts: byStatus.get(step) ?? null,
-    done: byStatus.has(step),
-  }));
+  const label = STATUS_LABEL[s] ?? String(status ?? "-");
+  return <span className={`chip chip--${s}`}>{t(label)}</span>;
 }
 
 export default function Profile() {
   const { user, booted } = useAuth();
+  const { language, t } = useLanguage();
   const cart = useCart();
 
   const [ordersRaw, setOrdersRaw] = useState([]);
@@ -128,21 +77,21 @@ export default function Profile() {
       try {
         setLoading(true);
         setErr("");
-        const data = await ordersApi.my();
+        const data = await ordersApi.my(language);
         setOrdersRaw(Array.isArray(data) ? data : []);
       } catch (e) {
-        setErr(e?.message ?? "Error while loading.");
+        setErr(e?.message ?? t("Error while loading."));
         setOrdersRaw([]);
       } finally {
         setLoading(false);
       }
     })();
-  }, [booted, user]);
+  }, [booted, user, language, t]);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await ingredientsApi.all();
+        const res = await ingredientsApi.all(language);
         const list = Array.isArray(res) ? res : Array.isArray(res?.content) ? res.content : [];
         setIngredients(list);
       } catch (e) {
@@ -150,7 +99,7 @@ export default function Profile() {
         setIngredients([]);
       }
     })();
-  }, []);
+  }, [language]);
 
   const orders = useMemo(() => {
     let list = Array.isArray(ordersRaw) ? [...ordersRaw] : [];
@@ -168,7 +117,7 @@ export default function Profile() {
 
   async function handleReorder(orderId) {
   try {
-    const res = await ordersApi.reorder(orderId);
+    const res = await ordersApi.reorder(orderId, language);
 
     if (res?.cart) {
       cart?.applyServerCart?.(res.cart);
@@ -177,11 +126,11 @@ export default function Profile() {
     cart?.open?.();
 
     if (res?.skipped > 0) {
-      const msg = Array.isArray(res?.messages) ? res.messages.join("\n") : "Some items were skipped.";
+      const msg = Array.isArray(res?.messages) ? res.messages.join("\n") : t("Some items were skipped.");
       alert(msg);
     }
   } catch (e) {
-    alert("Reorder failed: " + (e?.message ?? "Error"));
+    alert(`${t("Reorder failed")}: ${e?.message ?? t("Error")}`);
   }
 }
 
@@ -219,7 +168,7 @@ export default function Profile() {
         return next;
       });
     } catch (e) {
-      const msg = e?.message ?? "Failed to load status history.";
+      const msg = e?.message ?? t("Failed to load status history.");
       setHistoryErrByOrderId((prev) => {
         const next = new Map(prev);
         next.set(orderId, msg);
@@ -237,7 +186,7 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="container profile">
-        <p className="muted">Please login to view your profile.</p>
+        <p className="muted">{t("Please login to view your profile.")}</p>
       </div>
     );
   }
@@ -245,42 +194,42 @@ export default function Profile() {
   return (
     <div className="container profile">
       <div className="profile-header">
-        <h1>My Profile</h1>
+        <h1>{t("My Profile")}</h1>
         <button className="btn secondary" onClick={() => setEditOpen(true)}>
-          Edit
+          {t("Edit")}
         </button>
       </div>
 
       <section className="profile-card">
-        <h2>Details</h2>
+        <h2>{t("Details")}</h2>
         <div className="grid">
           <div>
-            <div className="muted">Username:</div>
+            <div className="muted">{t("Username")}:</div>
             <div>{user?.username}</div>
           </div>
           <div>
-            <div className="muted">Full name:</div>
+            <div className="muted">{t("Full name")}:</div>
             <div>{user?.fullname}</div>
           </div>
           <div>
-            <div className="muted">Role:</div>
-            <div>{user?.role}</div>
+            <div className="muted">{t("Role")}:</div>
+            <div>{t(user?.role, user?.role)}</div>
           </div>
           <div>
-            <div className="muted">Registered:</div>
-            <div>{user?.createdAt ? new Date(user.createdAt).toLocaleString() : "â€”"}</div>
+            <div className="muted">{t("Registered")}:</div>
+            <div>{user?.createdAt ? new Date(user.createdAt).toLocaleString() : "-"}</div>
           </div>
         </div>
       </section>
 
       <section className="orders">
         <header className="orders__toolbar">
-          <h2>My Orders</h2>
+          <h2>{t("My Orders")}</h2>
           <div className="actions">
             <div className="seg">
               {["all", "active", "delivered", "cancelled"].map((s) => (
                 <button key={s} className={status === s ? "active" : ""} onClick={() => setStatus(s)}>
-                  {s === "all" ? "All" : s === "active" ? "Active" : s === "delivered" ? "Delivered" : "Cancelled"}
+                  {s === "all" ? t("All") : s === "active" ? t("Active") : s === "delivered" ? t("Delivered") : t("Cancelled")}
                 </button>
               ))}
             </div>
@@ -289,8 +238,8 @@ export default function Profile() {
         </header>
 
         {err && <p className="alert error">{err}</p>}
-        {loading && <p className="muted">Loadingâ€¦</p>}
-        {empty && <p className="muted">You have no orders.</p>}
+        {loading && <p className="muted">{t("Loading...")}</p>}
+        {empty && <p className="muted">{t("You have no orders.")}</p>}
 
         <div className="orders__list">
           {orders.map((o) => {
@@ -300,10 +249,6 @@ export default function Profile() {
             const historyErr = historyErrByOrderId.get(orderId);
             const isHistoryLoading = historyLoadingId === orderId;
 
-            const timeline = isHistoryOpen && history.length > 0
-              ? buildTimelineFromHistory(history)
-              : buildTimelineFromCurrentStatus(o.status);
-
             return (
               <article key={orderId} className="order">
                 <div className="order__head">
@@ -312,41 +257,51 @@ export default function Profile() {
                     <StatusChip status={o.status} />
                   </div>
 
-                  <div className="right">
-
-                    <button className="btn secondary" onClick={() => toggleStatusHistory(orderId)}>
-                      {isHistoryOpen ? "Hide status history" : "Status history"}
+                  <div className="right order-actions">
+                    <button
+                      className={`order-action-btn order-action-btn--ghost ${isHistoryOpen ? "active" : ""}`}
+                      onClick={() => toggleStatusHistory(orderId)}
+                      type="button"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 8v5l3 2" />
+                        <path d="M3.5 12a8.5 8.5 0 1 0 2.3-5.8" />
+                        <path d="M3.5 4.5v4h4" />
+                      </svg>
+                      <span>{isHistoryOpen ? t("Hide status history") : t("Status history")}</span>
                     </button>
 
-                    <button onClick={() => handleReorder(orderId)} className="btn">
-                      Order again
+                    <button
+                      onClick={() => handleReorder(orderId)}
+                      className="order-action-btn order-action-btn--primary"
+                      type="button"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 8h12l-1 11H7L6 8Z" />
+                        <path d="M9 8a3 3 0 0 1 6 0" />
+                        <path d="M8 13h8" />
+                      </svg>
+                      <span>{t("Order again")}</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Timeline (enum-based)
-                <div className="order__timeline">
-                  {timeline.map(({ step, ts, done }) => (
-                    <Stage key={step} label={STATUS_LABEL[step]} ts={ts} done={done} />
-                  ))}
-                </div> */}
-
                 {/* Status history panel (raw list) */}
                 {isHistoryOpen && (
                   <div className="order__history">
-                    {isHistoryLoading && <div className="muted">Loading status historyâ€¦</div>}
+                    {isHistoryLoading && <div className="muted">{t("Loading status history...")}</div>}
                     {historyErr && <div className="alert error">{historyErr}</div>}
 
                     {!isHistoryLoading && !historyErr && history.length === 0 && (
-                      <div className="muted">No status history.</div>
+                      <div className="muted">{t("No status history.")}</div>
                     )}
 
                     {!isHistoryLoading && !historyErr && history.length > 0 && (
                       <div className="muted small" style={{ marginTop: 8 }}>
                         {history.map((h, idx) => (
                           <div key={`${h.status}-${h.changedAt ?? idx}`}>
-                            <b>{STATUS_LABEL[normStatus(h.status)] ?? h.status}</b>{" "}
-                            â€” {h.changedAt ? new Date(h.changedAt).toLocaleString() : "â€”"}
+                            <b>{t(STATUS_LABEL[normStatus(h.status)] ?? h.status)}</b>{" "}
+                            {" - "}{h.changedAt ? new Date(h.changedAt).toLocaleString() : "-"}
                           </div>
                         ))}
                       </div>
@@ -370,7 +325,7 @@ export default function Profile() {
                             {it.customizations
                               .map((c) => {
                                 const name = c.ingredientName ?? ingredientNameMap.get(c.ingredientId) ?? `#${c.ingredientId}`;
-                                const sign = String(c.action ?? "").toLowerCase() === "add" ? "+" : "âˆ’";
+                                const sign = String(c.action ?? "").toLowerCase() === "add" ? "+" : "-";
                                 return `${sign}${name}`;
                               })
                               .join(", ")}
@@ -387,8 +342,8 @@ export default function Profile() {
 
                 {(o.address || o.phoneNumber) && (
                   <div className="order__delivery muted">
-                    <div>Address: {o.address || "â€”"}</div>
-                    <div>Phone: {o.phoneNumber || "â€”"}</div>
+                    <div>{t("Address")}: {o.address || "â€”"}</div>
+                    <div>{t("Phone")}: {o.phoneNumber || "â€”"}</div>
                   </div>
                 )}
               </article>

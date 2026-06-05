@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "../../styles/Drinks.module.css";
 import { adminApi } from "../../api/admin";
+import { useLanguage } from "../../context/LanguageContext";
 import { fileToBase64 } from "../../utils/fileToBase64";
 import DrinkForm, { normalizeDrink } from "./components/DrinkForm";
 import Modal from "./components/Modal";
 
 export default function DrinksAdmin() {
+  const { language, t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -24,8 +26,8 @@ export default function DrinksAdmin() {
     try {
       const list =
         nextView === "deleted"
-          ? await adminApi.listDeletedDrinks()
-          : await adminApi.listDrinks();
+          ? await adminApi.listDeletedDrinks(language)
+          : await adminApi.listDrinks(language);
 
       setRows(Array.isArray(list) ? list : []);
     } catch (e) {
@@ -38,7 +40,7 @@ export default function DrinksAdmin() {
   useEffect(() => {
     setQ("");
     load(view);
-  }, [view]);
+  }, [view, language]);
 
   const filteredRows = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -52,7 +54,7 @@ export default function DrinksAdmin() {
   async function onEditClick(row) {
     setBusy(true);
     try {
-      const full = await adminApi.getDrink(row.id);
+      const full = await adminApi.getDrink(row.id, language);
       setEditing({ id: full?.id ?? row.id, ...normalizeDrink(full) });
     } catch (_) {
       setEditing({ id: row.id, ...normalizeDrink(row) });
@@ -62,7 +64,7 @@ export default function DrinksAdmin() {
   }
 
   async function onDelete(id) {
-    if (!window.confirm("Delete this drink? (soft delete)")) return;
+    if (!window.confirm(t("Delete this drink? (soft delete)"))) return;
     setBusy(true);
     setError(null);
     try {
@@ -104,6 +106,7 @@ export default function DrinksAdmin() {
         description: payload.description,
         basePrice: payload.basePrice,
         imageBase64,
+        translations: payload.translations,
       });
 
       setCreating(false);
@@ -144,7 +147,7 @@ export default function DrinksAdmin() {
 
   return (
     <div className={styles.wrap}>
-      <h1 className={styles.h1}>Drinks</h1>
+      <h1 className={styles.h1}>{t("Drinks")}</h1>
 
       {error && <div className={`${styles.panel} ${styles.error}`}>{error}</div>}
 
@@ -154,17 +157,17 @@ export default function DrinksAdmin() {
             className={styles.btn}
             onClick={() => setView("active")}
             disabled={busy || view === "active"}
-            title="Show active drinks"
+            title={t("Show active drinks")}
           >
-            Active
+            {t("Active")}
           </button>
           <button
             className={styles.btn}
             onClick={() => setView("deleted")}
             disabled={busy || view === "deleted"}
-            title="Show deleted drinks"
+            title={t("Show deleted drinks")}
           >
-            Deleted
+            {t("Deleted")}
           </button>
 
           {/* Search input */}
@@ -172,7 +175,7 @@ export default function DrinksAdmin() {
             className={styles.input}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name…"
+            placeholder={t("Search by name...")}
             disabled={busy || loading}
             style={{ maxWidth: 260 }}
           />
@@ -183,7 +186,7 @@ export default function DrinksAdmin() {
               onClick={() => setCreating(true)}
               disabled={busy || loading}
             >
-              + New drink
+              + {t("New drink")}
             </button>
           )}
 
@@ -192,7 +195,7 @@ export default function DrinksAdmin() {
             onClick={() => load(view)}
             disabled={busy || loading}
           >
-            Reload
+            {t("Reload")}
           </button>
         </div>
       </div>
@@ -203,17 +206,17 @@ export default function DrinksAdmin() {
             <thead>
               <tr>
                 <th className={styles.th}>ID</th>
-                <th className={styles.th}>Image</th>
-                <th className={styles.th}>Name</th>
-                <th className={styles.th}>Price</th>
-                <th className={styles.th}>Actions</th>
+                <th className={styles.th}>{t("Image")}</th>
+                <th className={styles.th}>{t("Name")}</th>
+                <th className={styles.th}>{t("Price")}</th>
+                <th className={styles.th}>{t("Actions")}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td className={styles.td} colSpan={5}>
-                    Loading…
+                    {t("Loading...")}
                   </td>
                 </tr>
               ) : filteredRows.length ? (
@@ -231,7 +234,7 @@ export default function DrinksAdmin() {
                           className={styles.img}
                         />
                       ) : (
-                        <span className={styles.badge}>no image</span>
+                        <span className={styles.badge}>{t("no image")}</span>
                       )}
                     </td>
                     <td className={styles.td}>{r.name}</td>
@@ -247,14 +250,14 @@ export default function DrinksAdmin() {
                               onClick={() => onEditClick(r)}
                               disabled={busy}
                             >
-                              Edit
+                              {t("Edit")}
                             </button>
                             <button
                               className={styles.btn}
                               onClick={() => onDelete(r.id)}
                               disabled={busy}
                             >
-                              Delete
+                              {t("Delete")}
                             </button>
                           </>
                         ) : (
@@ -263,7 +266,7 @@ export default function DrinksAdmin() {
                             onClick={() => onRestore(r.id)}
                             disabled={busy}
                           >
-                            Restore
+                            {t("Restore")}
                           </button>
                         )}
                       </div>
@@ -273,7 +276,7 @@ export default function DrinksAdmin() {
               ) : (
                 <tr>
                   <td className={styles.td} colSpan={5}>
-                    {q.trim() ? "No matching drinks." : "No records."}
+                    {q.trim() ? t("No matching drinks.") : t("No records.")}
                   </td>
                 </tr>
               )}
@@ -282,7 +285,7 @@ export default function DrinksAdmin() {
         </div>
       </div>
 
-      <Modal title="New drink" isOpen={creating} onClose={() => setCreating(false)}>
+      <Modal title={t("New drink")} isOpen={creating} onClose={() => setCreating(false)}>
         <DrinkForm
           initial={normalizeDrink()}
           onSubmit={(payload, img) => onCreate(payload, img)}
@@ -291,7 +294,7 @@ export default function DrinksAdmin() {
       </Modal>
 
       <Modal
-        title="Edit drink"
+        title={t("Edit drink")}
         isOpen={Boolean(editing)}
         onClose={() => setEditing(null)}
       >

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "../../styles/Pizzas.module.css";
 import { adminApi } from "../../api/admin";
+import { useLanguage } from "../../context/LanguageContext";
 import PizzaForm, { normalizePizza } from "./components/PizzaForm";
 import Modal from "./components/Modal";
 
 export default function PizzasAdmin() {
+  const { language, t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -23,12 +25,12 @@ export default function PizzasAdmin() {
     try {
       const list =
         nextView === "deleted"
-          ? await adminApi.listDeletedPizzas({ withVariants: true })
-          : await adminApi.listPizzas({ withVariants: true });
+          ? await adminApi.listDeletedPizzas({ withVariants: true, lang: language })
+          : await adminApi.listPizzas({ withVariants: true, lang: language });
 
       setRows(Array.isArray(list) ? list : []);
     } catch (e) {
-      setError(e?.message || "Failed to load pizzas");
+      setError(e?.message || t("Failed to load pizzas"));
     } finally {
       setLoading(false);
     }
@@ -37,7 +39,7 @@ export default function PizzasAdmin() {
   useEffect(() => {
     setQ("");
     load(view);
-  }, [view]);
+  }, [view, language]);
 
   const filteredRows = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -51,7 +53,7 @@ export default function PizzasAdmin() {
   async function onEditClick(row) {
     setBusy(true);
     try {
-      const full = await adminApi.getPizza(row.id);
+      const full = await adminApi.getPizza(row.id, language);
       setEditing({ id: full?.id ?? row.id, ...normalizePizza(full) });
     } catch (_) {
       setEditing({ id: row.id, ...normalizePizza(row) });
@@ -61,14 +63,14 @@ export default function PizzasAdmin() {
   }
 
   async function onDelete(id) {
-    if (!window.confirm("Delete this pizza? (soft delete)")) return;
+    if (!window.confirm(t("Delete this pizza? (soft delete)"))) return;
     setBusy(true);
     try {
       await adminApi.deletePizza(id);
       setView("active");
       await load("active");
     } catch (e) {
-      alert(e?.message || "Delete failed");
+      alert(e?.message || t("Delete failed"));
     } finally {
       setBusy(false);
     }
@@ -80,7 +82,7 @@ export default function PizzasAdmin() {
       await adminApi.restorePizza(id);
       await load(view);
     } catch (e) {
-      alert(e?.message || "Restore failed");
+      alert(e?.message || t("Restore failed"));
     } finally {
       setBusy(false);
     }
@@ -94,7 +96,7 @@ export default function PizzasAdmin() {
       setView("active");
       await load("active");
     } catch (e) {
-      alert(e?.message || "Create failed");
+      alert(e?.message || t("Create failed"));
     } finally {
       setBusy(false);
     }
@@ -107,7 +109,7 @@ export default function PizzasAdmin() {
       setEditing(null);
       await load(view);
     } catch (e) {
-      alert(e?.message || "Update failed");
+      alert(e?.message || t("Update failed"));
     } finally {
       setBusy(false);
     }
@@ -120,7 +122,7 @@ export default function PizzasAdmin() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div className={styles.title}>Pizzas</div>
+        <div className={styles.title}>{t("Pizzas")}</div>
 
         <div className={styles.actions}>
           <div style={{ display: "flex", gap: 8 }}>
@@ -128,17 +130,17 @@ export default function PizzasAdmin() {
               className={styles.btn}
               onClick={() => toggleView("active")}
               disabled={busy || view === "active"}
-              title="Show active pizzas"
+              title={t("Show active pizzas")}
             >
-              Active
+              {t("Active")}
             </button>
             <button
               className={styles.btn}
               onClick={() => toggleView("deleted")}
               disabled={busy || view === "deleted"}
-              title="Show deleted pizzas"
+              title={t("Show deleted pizzas")}
             >
-              Deleted
+              {t("Deleted")}
             </button>
           </div>
 
@@ -146,7 +148,7 @@ export default function PizzasAdmin() {
             className={styles.input}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name…"
+            placeholder={t("Search by name...")}
             disabled={busy || loading}
             style={{ maxWidth: 200 }}
           />
@@ -157,23 +159,23 @@ export default function PizzasAdmin() {
               onClick={() => setCreating(true)}
               disabled={busy}
             >
-              + New pizza
+              + {t("New pizza")}
             </button>
           )}
         </div>
       </div>
 
-      {error && <div className={`${styles.panel} ${styles.error}`}>Error: {error}</div>}
+      {error && <div className={`${styles.panel} ${styles.error}`}>{t("Error")}: {error}</div>}
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
             <tr>
               <th className={styles.th}>ID</th>
-              <th className={styles.th}>Image</th>
-              <th className={styles.th}>Name</th>
-              <th className={styles.th}>Price</th>
-              <th className={styles.th}>Actions</th>
+              <th className={styles.th}>{t("Image")}</th>
+              <th className={styles.th}>{t("Name")}</th>
+              <th className={styles.th}>{t("Price")}</th>
+              <th className={styles.th}>{t("Actions")}</th>
             </tr>
           </thead>
 
@@ -181,7 +183,7 @@ export default function PizzasAdmin() {
             {loading ? (
               <tr>
                 <td className={styles.td} colSpan={5}>
-                  Loading…
+                  {t("Loading...")}
                 </td>
               </tr>
             ) : filteredRows?.length ? (
@@ -196,7 +198,7 @@ export default function PizzasAdmin() {
                     {r.imageUrl ? (
                       <img className={styles.img} src={r.imageUrl} alt={r.name} />
                     ) : (
-                      <span className={styles.note}>no image</span>
+                      <span className={styles.note}>{t("no image")}</span>
                     )}
                   </td>
 
@@ -217,14 +219,14 @@ export default function PizzasAdmin() {
                             onClick={() => onEditClick(r)}
                             disabled={busy}
                           >
-                            Edit
+                            {t("Edit")}
                           </button>
                           <button
                             className={styles.btn}
                             onClick={() => onDelete(r.id)}
                             disabled={busy}
                           >
-                            Delete
+                            {t("Delete")}
                           </button>
                         </>
                       ) : (
@@ -233,7 +235,7 @@ export default function PizzasAdmin() {
                           onClick={() => onRestore(r.id)}
                           disabled={busy}
                         >
-                          Restore
+                          {t("Restore")}
                         </button>
                       )}
                     </div>
@@ -243,7 +245,7 @@ export default function PizzasAdmin() {
             ) : (
               <tr>
                 <td className={styles.td} colSpan={5}>
-                  {q.trim() ? "No matching pizzas." : "No records."}
+                  {q.trim() ? t("No matching pizzas.") : t("No records.")}
                 </td>
               </tr>
             )}
@@ -251,16 +253,17 @@ export default function PizzasAdmin() {
         </table>
       </div>
 
-      <Modal title="Create pizza" isOpen={creating} onClose={() => setCreating(false)}>
+      <Modal title={t("Create pizza")} isOpen={creating} onClose={() => setCreating(false)}>
         <PizzaForm
           mode="create"
           busy={busy}
           onCancel={() => setCreating(false)}
           onSubmit={handleCreate}
+          language={language}
         />
       </Modal>
 
-      <Modal title="Edit pizza" isOpen={Boolean(editing)} onClose={() => setEditing(null)}>
+      <Modal title={t("Edit pizza")} isOpen={Boolean(editing)} onClose={() => setEditing(null)}>
         {editing && (
           <PizzaForm
             mode="edit"
@@ -269,6 +272,7 @@ export default function PizzasAdmin() {
             pizzaId={editing.id}
             onCancel={() => setEditing(null)}
             onSubmit={(payload) => handleUpdate(editing.id, payload)}
+            language={language}
           />
         )}
       </Modal>

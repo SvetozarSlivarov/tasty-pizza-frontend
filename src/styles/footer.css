@@ -65,12 +65,15 @@
 
 .contact li{ color: rgba(var(--muted), .95); }
 .social{ display: flex; gap: 10px; }
-.social a{
+.social button{
     width: 36px; height: 36px; display: grid; place-items: center;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
     border-radius: 10px; background: rgba(255,255,255,.06);
     transition: transform .15s ease, background .15s ease;
 }
-.social a:hover{ transform: translateY(-2px); background: rgba(255,255,255,.1); }
+.social button:hover{ transform: translateY(-2px); background: rgba(255,255,255,.1); }
 
 .footer-bottom{
     border-top: 1px solid rgba(255,255,255,.08);

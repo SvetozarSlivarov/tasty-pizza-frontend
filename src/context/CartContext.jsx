@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useCallback } from "react";
 import { cartApi } from "../api/cart";
+import { useLanguage } from "./LanguageContext";
 
 let notify;
 const CartContext = createContext(null);
@@ -103,12 +104,12 @@ function getErr(e) {
   return { code: data.error, message: data.message || e?.message, details: data.details, status: e?.response?.status ?? e?.status };
 }
 
-function showError(code, message) {
+function showError(code, message, t = (text) => text) {
   const text =
-    code === "addon_unavailable" ? "This ingredient is no longer available." :
-    code === "add_not_allowed" ? "This ingredient is not allowed for this item." :
-    code === "cart_invalid" ? "The cart contains invalid or unavailable items." :
-    message || "Operation failed.";
+    code === "addon_unavailable" ? t("This ingredient is no longer available.") :
+    code === "add_not_allowed" ? t("This ingredient is not allowed for this item.") :
+    code === "cart_invalid" ? t("The cart contains invalid or unavailable items.") :
+    message || t("Operation failed.");
   if (notify?.notify?.error) notify.notify.error(text);
   else if (notify?.error) notify.error(text);
   else alert(text);
@@ -121,11 +122,12 @@ function showSuccess(message) {
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const { language, t } = useLanguage();
 
   const refresh = useCallback(async () => {
     try {
       dispatch({ type: "LOADING" });
-      const data = await cartApi.get();
+      const data = await cartApi.get(language);
       dispatch({ type: "SET_CART", payload: mapServerCart(data) });
       return data;
     } catch (e) {
@@ -133,7 +135,7 @@ export function CartProvider({ children }) {
       dispatch({ type: "ERROR", payload: err.code || err.message });
       throw e;
     }
-  }, []);
+  }, [language]);
 
   useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => {
@@ -142,15 +144,15 @@ export function CartProvider({ children }) {
     return () => window.removeEventListener("cart:refresh", onRefresh);
   }, [refresh]);
 
-  async function safe(fn, opts = { refreshOnError: false }) {
+  const safe = useCallback(async (fn, opts = { refreshOnError: false }) => {
     try { return await fn(); }
     catch (e) {
       const err = getErr(e);
-      showError(err.code, err.message);
+      showError(err.code, err.message, t);
       if (err.code === "addon_unavailable" || err.code === "cart_invalid" || opts.refreshOnError) await refresh();
       throw e;
     }
-  }
+  }, [refresh, t]);
 
   const api = useMemo(() => ({
     isOpen: state.isOpen,
@@ -169,107 +171,107 @@ export function CartProvider({ children }) {
 
     async addPizza({ productId, variantId = null, quantity = 1, removeIngredientIds = [], addIngredientIds = [], note = "" }) {
       await safe(async () => {
-        const data = await cartApi.addPizza({ productId, variantId, quantity, removeIngredientIds, addIngredientIds, note });
+        const data = await cartApi.addPizza({ productId, variantId, quantity, removeIngredientIds, addIngredientIds, note }, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       });
       dispatch({ type: "OPEN" });
-      showSuccess("Pizza added to cart.");
+      showSuccess(t("Pizza added to cart."));
     },
 
     async addPasta({ productId, pastaSauceId, quantity = 1, addIngredientIds = [], note = "" }) {
       await safe(async () => {
-        const data = await cartApi.addPasta({ productId, pastaSauceId, quantity, addIngredientIds, note });
+        const data = await cartApi.addPasta({ productId, pastaSauceId, quantity, addIngredientIds, note }, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       });
       dispatch({ type: "OPEN" });
-      showSuccess("Pasta added to cart.");
+      showSuccess(t("Pasta added to cart."));
     },
 
     async addDrink({ productId, quantity = 1, note = "" }) {
       await safe(async () => {
-        const data = await cartApi.addDrink({ productId, quantity, note });
+        const data = await cartApi.addDrink({ productId, quantity, note }, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       });
       dispatch({ type: "OPEN" });
-      showSuccess("Drink added to cart.");
+      showSuccess(t("Drink added to cart."));
     },
 
     async updateQty(itemId, qty) {
       const q = Math.max(1, Number(qty) || 1);
       await safe(async () => {
-        const data = await cartApi.updateItem(itemId, { quantity: q });
+        const data = await cartApi.updateItem(itemId, { quantity: q }, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       });
-      showSuccess("Quantity updated.");
+      showSuccess(t("Quantity updated."));
     },
 
     async updateVariant(itemId, variantId) {
       await safe(async () => {
-        const data = await cartApi.updateItem(itemId, { variantId });
+        const data = await cartApi.updateItem(itemId, { variantId }, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       });
-      showSuccess("Variant updated.");
+      showSuccess(t("Variant updated."));
     },
 
     async updatePastaSauce(itemId, pastaSauceId) {
       await safe(async () => {
-        const data = await cartApi.updateItem(itemId, { pastaSauceId });
+        const data = await cartApi.updateItem(itemId, { pastaSauceId }, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       });
-      showSuccess("Sauce updated.");
+      showSuccess(t("Sauce updated."));
     },
 
     async updateNote(itemId, note) {
       await safe(async () => {
-        const data = await cartApi.updateItem(itemId, { note });
+        const data = await cartApi.updateItem(itemId, { note }, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       });
-      showSuccess("Note updated.");
+      showSuccess(t("Note updated."));
     },
 
     async updateCustomizations(itemId, { addIds = [], removeIds = [] }) {
       await safe(async () => {
-        const data = await cartApi.updateItem(itemId, { addIds, removeIds });
+        const data = await cartApi.updateItem(itemId, { addIds, removeIds }, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       });
-      showSuccess("Customizations updated.");
+      showSuccess(t("Customizations updated."));
     },
 
     async remove(itemId) {
       await safe(async () => {
-        const data = await cartApi.removeItem(itemId);
+        const data = await cartApi.removeItem(itemId, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       }, { refreshOnError: true });
-      showSuccess("Item removed.");
+      showSuccess(t("Item removed."));
     },
 
     async clear() {
       const ids = state.items.map((i) => i.id).filter((x) => x != null);
-      for (const id of ids) { try { await cartApi.removeItem(id); } catch {} }
+      for (const id of ids) { try { await cartApi.removeItem(id, language); } catch {} }
       await refresh();
-      showSuccess("Cart cleared.");
+      showSuccess(t("Cart cleared."));
     },
 
     async checkout({ phone, address }) {
       const res = await safe(async () => {
-        const data = await cartApi.checkout({ phone, address });
+        const data = await cartApi.checkout({ phone, address }, language);
         dispatch({ type: "SET_CART", payload: mapServerCart(data) });
         return data;
       });
       await refresh();
-      showSuccess("Order placed");
+      showSuccess(t("Order placed!"));
       return res;
     },
-  }), [state.isOpen, state.loading, state.error, state.items, state.subtotal, state.orderId, state.status, refresh]);
+  }), [state.isOpen, state.loading, state.error, state.items, state.subtotal, state.orderId, state.status, refresh, safe, language, t]);
 
   return <CartContext.Provider value={api}>{children}</CartContext.Provider>;
 }

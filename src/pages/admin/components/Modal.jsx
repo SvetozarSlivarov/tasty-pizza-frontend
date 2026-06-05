@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
+import { useLanguage } from "../../../context/LanguageContext";
 import styles from "../../../styles/Drinks.module.css";
 
 export default function Modal({ title, isOpen, onClose, children, footer }) {
   const dialogRef = useRef(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -46,7 +48,7 @@ export default function Modal({ title, isOpen, onClose, children, footer }) {
       >
         <div className={styles.modalHeader}>
           <h3 id="modal-title" className={styles.modalTitle}>{title}</h3>
-          <button className={styles.modalClose} onClick={onClose} aria-label="Close">
+          <button className={styles.modalClose} onClick={onClose} aria-label={t("Close")}>
             x
           </button>
         </div>

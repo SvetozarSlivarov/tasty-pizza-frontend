@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useLanguage } from "../context/LanguageContext";
 import { productApi } from "../api/catalog";
 import { cartApi } from "../api/cart";
 import styles from "../styles/PizzaDetails.module.css";
@@ -20,6 +21,7 @@ export default function PizzaDetails() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const cart = useCart();
+  const { language, t, enumLabel } = useLanguage();
 
   const editItemId = searchParams.get("editItemId");
   const isEditMode = !!editItemId;
@@ -43,7 +45,7 @@ export default function PizzaDetails() {
         setLoading(true);
         setError(null);
 
-        const res = await productApi.pizza(id, true);
+        const res = await productApi.pizza(id, true, language);
 
         const baseIngredients = (res.ingredients ?? []).map((x) => ({
           id: x.ingredientId,
@@ -93,7 +95,7 @@ export default function PizzaDetails() {
           const item = (cart.items ?? []).find((x) => Number(x.id) === itemIdNum);
 
           if (!item) {
-            setError("Edit item not found in cart.");
+            setError(t("Edit item not found in cart."));
             return;
           }
 
@@ -123,7 +125,7 @@ export default function PizzaDetails() {
           e?.response?.data?.message ||
           e?.response?.data?.error ||
           e?.message ||
-          "Failed to load pizza.";
+          t("Failed to load pizza.");
         setError(msg);
         console.error("PizzaDetails load error:", e);
       } finally {
@@ -135,7 +137,7 @@ export default function PizzaDetails() {
     return () => {
       cancelled = true;
     };
-  }, [id, isEditMode, editItemId]); // ok
+  }, [id, isEditMode, editItemId, language]); // ok
 
   const selectedVariant = useMemo(() => {
     if (!pizza?.variants?.length) return null;
@@ -185,7 +187,7 @@ export default function PizzaDetails() {
       const safeQty = Math.max(1, toInt(qty, 1) ?? 1);
 
       if (!variantId) {
-        setError("Please select a variant.");
+        setError(t("Please select a variant."));
         return;
       }
 
@@ -196,7 +198,7 @@ export default function PizzaDetails() {
           variantId: variantId,
           addIngredientIds,
           removeIngredientIds,
-        });
+        }, language);
 
         await cart.refresh();
         cart.open();
@@ -219,7 +221,7 @@ export default function PizzaDetails() {
         e?.response?.data?.message ||
         e?.response?.data?.error ||
         e?.message ||
-        (isEditMode ? "Failed to save changes." : "Failed to add to cart.");
+        (isEditMode ? t("Failed to save changes.") : t("Failed to add to cart."));
       setError(msg);
       console.error("Submit error:", e);
     }
@@ -230,7 +232,7 @@ export default function PizzaDetails() {
     navigate("/menu");
   }
 
-  if (loading) return <p className={styles.loading}>Loading…</p>;
+  if (loading) return <p className={styles.loading}>{t("Loading...")}</p>;
   if (error) return <p className={styles.error}>{error}</p>;
   if (!pizza) return null;
 
@@ -245,7 +247,7 @@ export default function PizzaDetails() {
             ) : (
               <div className={styles.card}>
                 <div className={styles.cardBody}>
-                  <p className={styles.desc}>No image.</p>
+                  <p className={styles.desc}>{t("No image.")}</p>
                 </div>
               </div>
             )}
@@ -255,7 +257,7 @@ export default function PizzaDetails() {
             <div className={styles.cardBody}>
               <div className={styles.titleRow}>
                 <h1 className={styles.title}>{pizza.name}</h1>
-                <span className={styles.badge}>{isEditMode ? "Editing" : "Customize"}</span>
+                <span className={styles.badge}>{isEditMode ? t("Editing") : t("Customize")}</span>
               </div>
               <p className={styles.desc}>{pizza.description}</p>
             </div>
@@ -263,7 +265,7 @@ export default function PizzaDetails() {
 
           <div className={styles.card}>
             <div className={styles.cardBody}>
-              <h3 className={styles.sectionTitle}>Base ingredients</h3>
+              <h3 className={styles.sectionTitle}>{t("Base ingredients")}</h3>
 
               <ul className={styles.list}>
                 {pizza.baseIngredients.map((ing) => {
@@ -282,7 +284,7 @@ export default function PizzaDetails() {
                       />
                       <div className={styles.itemTitle}>
                         <span className={styles.itemName}>{ing.name}</span>
-                        {!ing.removable && <span className={styles.itemHint}>Required</span>}
+                        {!ing.removable && <span className={styles.itemHint}>{t("Required")}</span>}
                       </div>
                     </li>
                   );
@@ -294,7 +296,7 @@ export default function PizzaDetails() {
           {pizza.allowedIngredients?.length > 0 && (
             <div className={styles.card}>
               <div className={styles.cardBody}>
-                <h3 className={styles.sectionTitle}>Extras</h3>
+                <h3 className={styles.sectionTitle}>{t("Extras")}</h3>
 
                 <ul className={styles.list}>
                   {pizza.allowedIngredients.map((ing) => {
@@ -313,7 +315,7 @@ export default function PizzaDetails() {
                         </div>
 
                         <span className={styles.itemPrice}>
-                          {ing.extraPrice > 0 ? `+${ing.extraPrice.toFixed(2)} EUR` : "Free"}
+                          {ing.extraPrice > 0 ? `+${ing.extraPrice.toFixed(2)} EUR` : t("Free")}
                         </span>
                       </li>
                     );
@@ -328,11 +330,11 @@ export default function PizzaDetails() {
         <div className={styles.summary}>
           <div className={styles.card}>
             <div className={styles.cardBody}>
-              <h3 className={styles.sectionTitle}>Options</h3>
+              <h3 className={styles.sectionTitle}>{t("Options")}</h3>
 
               {pizza.variants?.length > 0 && (
                 <div className={styles.field} style={{ marginBottom: 12 }}>
-                  <div className={styles.fieldLabel}>Variant</div>
+                  <div className={styles.fieldLabel}>{t("Variant")}</div>
                   <select
                     className={styles.select}
                     value={variantId ?? ""}
@@ -340,7 +342,7 @@ export default function PizzaDetails() {
                   >
                     {pizza.variants.map((v) => (
                       <option key={v.id} value={v.id}>
-                        {v.size} / {v.dough}
+                        {enumLabel(v.size)} / {enumLabel(v.dough)}
                         {v.extraPrice > 0 ? ` (+${v.extraPrice.toFixed(2)} EUR)` : ""}
                       </option>
                     ))}
@@ -350,7 +352,7 @@ export default function PizzaDetails() {
 
               <div className={styles.row}>
                 <div className={styles.field} style={{ minWidth: 140 }}>
-                  <div className={styles.fieldLabel}>Quantity</div>
+                  <div className={styles.fieldLabel}>{t("Quantity")}</div>
                   <input
                     className={styles.input}
                     type="number"
@@ -361,38 +363,38 @@ export default function PizzaDetails() {
                 </div>
 
                 <div className={`${styles.field} ${styles.note}`}>
-                  <div className={styles.fieldLabel}>Note</div>
+                  <div className={styles.fieldLabel}>{t("Note")}</div>
                   <input
                     className={styles.input}
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder="Optional note…"
+                    placeholder={t("Optional note...")}
                   />
                 </div>
               </div>
 
               <div className={styles.total}>
                 <div>
-                  <div className={styles.totalLabel}>Total</div>
-                  <div className={styles.itemHint}>Preview price</div>
+                  <div className={styles.totalLabel}>{t("Total")}</div>
+                  <div className={styles.itemHint}>{t("Preview price")}</div>
                 </div>
                 <div className={styles.totalValue}>{totalPrice.toFixed(2)} EUR</div>
               </div>
 
               <div className={styles.actions}>
                 <button className={styles.btn} onClick={onSubmit}>
-                  {isEditMode ? "Save changes" : "Add to cart"}
+                  {isEditMode ? t("Save changes") : t("Add to cart")}
                 </button>
 
                 {isEditMode && (
                   <button className={`${styles.btn} ${styles.btnGhost}`} onClick={onCancel} type="button">
-                    Cancel
+                    {t("Cancel")}
                   </button>
                 )}
               </div>
 
               <div className={styles.tip}>
-                Tip: The cart price is calculated by the server (so it always matches checkout).
+                {t("Tip: The cart price is calculated by the server (so it always matches checkout).")}
               </div>
             </div>
           </div>

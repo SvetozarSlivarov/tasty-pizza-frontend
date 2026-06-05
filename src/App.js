@@ -12,6 +12,7 @@ import Register from "./pages/Register";
 import CartDrawer from "./components/CartDrawer";
 import CartFab from "./components/CartFab";
 import {CartProvider} from "./context/CartContext";
+import {LanguageProvider} from "./context/LanguageContext";
 import Profile from "./pages/Profile";
 import AdminHome from "./pages/admin/Home";
 import PizzasAdmin from "./pages/admin/Pizzas";
@@ -25,7 +26,9 @@ import UsersAdmin from "./pages/admin/Users";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Cookies from "./pages/Cookies";
+import NotFound from "./pages/NotFound";
 import {GuestOnly, RequireAdmin, RequireAuth} from "./routes/guards";
+import "./styles/dropdowns.css";
 
 function AppRoutes() {
     const location = useLocation();
@@ -74,6 +77,8 @@ function AppRoutes() {
                         <Route path="/admin/orders/:id" element={<AdminOrderDetails />} />
                         <Route path="/admin/users" element={<UsersAdmin />} />
                     </Route>
+
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </main>
             <Footer />
@@ -83,13 +88,15 @@ function AppRoutes() {
 
 function App() {
     return (
-        <CartProvider>
-            <AuthProvider>
-                <BrowserRouter>
-                    <AppRoutes />
-                </BrowserRouter>
-            </AuthProvider>
-        </CartProvider>
+        <LanguageProvider>
+            <CartProvider>
+                <AuthProvider>
+                    <BrowserRouter>
+                        <AppRoutes />
+                    </BrowserRouter>
+                </AuthProvider>
+            </CartProvider>
+        </LanguageProvider>
     );
 }
 

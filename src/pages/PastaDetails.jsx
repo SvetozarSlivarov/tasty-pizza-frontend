@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useLanguage } from "../context/LanguageContext";
 import { productApi } from "../api/catalog";
 import { cartApi } from "../api/cart";
 import styles from "../styles/PizzaDetails.module.css";
@@ -20,6 +21,7 @@ export default function PastaDetails() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const cart = useCart();
+  const { language, t, enumLabel } = useLanguage();
 
   const editItemId = searchParams.get("editItemId");
   const isEditMode = !!editItemId;
@@ -40,7 +42,7 @@ export default function PastaDetails() {
         setLoading(true);
         setError(null);
 
-        const res = await productApi.pasta(id);
+        const res = await productApi.pasta(id, language);
         const sauces = (res.sauces ?? []).map((s) => ({
           id: s.id,
           ingredientId: s.ingredientId,
@@ -75,7 +77,7 @@ export default function PastaDetails() {
           const itemIdNum = Number(editItemId);
           const item = (cart.items ?? []).find((x) => Number(x.id) === itemIdNum);
           if (!item) {
-            setError("Edit item not found in cart.");
+            setError(t("Edit item not found in cart."));
             return;
           }
           setQty(toInt(item.qty, 1) ?? 1);
@@ -91,7 +93,7 @@ export default function PastaDetails() {
           setAddedIds(adds);
         }
       } catch (e) {
-        const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || "Failed to load pasta.";
+        const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || t("Failed to load pasta.");
         setError(msg);
       } finally {
         if (!cancelled) setLoading(false);
@@ -100,7 +102,7 @@ export default function PastaDetails() {
 
     load();
     return () => { cancelled = true; };
-  }, [id, isEditMode, editItemId]);
+  }, [id, isEditMode, editItemId, language]);
 
   const selectedSauce = useMemo(() => {
     if (!pasta?.sauces?.length) return null;
@@ -129,14 +131,14 @@ export default function PastaDetails() {
       setError(null);
       if (!pasta) return;
       if (!sauceId) {
-        setError("Please select a sauce.");
+        setError(t("Please select a sauce."));
         return;
       }
       const addIngredientIds = Array.from(addedIds).map(Number);
       const safeQty = Math.max(1, toInt(qty, 1) ?? 1);
 
       if (isEditMode) {
-        await cartApi.updateItem(editItemId, { quantity: safeQty, note, pastaSauceId: sauceId, addIngredientIds, removeIngredientIds: [] });
+        await cartApi.updateItem(editItemId, { quantity: safeQty, note, pastaSauceId: sauceId, addIngredientIds, removeIngredientIds: [] }, language);
         await cart.refresh();
         cart.open();
         navigate("/menu");
@@ -146,7 +148,7 @@ export default function PastaDetails() {
       await cart.addPasta({ productId: Number(pasta.id), pastaSauceId: sauceId, quantity: safeQty, note, addIngredientIds });
       navigate("/menu");
     } catch (e) {
-      const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || (isEditMode ? "Failed to save changes." : "Failed to add to cart.");
+      const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || (isEditMode ? t("Failed to save changes.") : t("Failed to add to cart."));
       setError(msg);
     }
   }
@@ -156,7 +158,7 @@ export default function PastaDetails() {
     navigate("/menu");
   }
 
-  if (loading) return <p className={styles.loading}>Loading...</p>;
+  if (loading) return <p className={styles.loading}>{t("Loading...")}</p>;
   if (error) return <p className={styles.error}>{error}</p>;
   if (!pasta) return null;
 
@@ -165,14 +167,14 @@ export default function PastaDetails() {
       <div className={styles.grid}>
         <div>
           <div className={styles.hero}>
-            {pasta.imageUrl ? <img src={pasta.imageUrl} alt={pasta.name} className={styles.heroImg} /> : <div className={styles.card}><div className={styles.cardBody}><p className={styles.desc}>No image.</p></div></div>}
+            {pasta.imageUrl ? <img src={pasta.imageUrl} alt={pasta.name} className={styles.heroImg} /> : <div className={styles.card}><div className={styles.cardBody}><p className={styles.desc}>{t("No image.")}</p></div></div>}
           </div>
 
           <div className={styles.card}>
             <div className={styles.cardBody}>
               <div className={styles.titleRow}>
                 <h1 className={styles.title}>{pasta.name}</h1>
-                <span className={styles.badge}>{isEditMode ? "Editing" : "Customize"}</span>
+                <span className={styles.badge}>{isEditMode ? t("Editing") : t("Customize")}</span>
               </div>
               <p className={styles.desc}>{pasta.description}</p>
             </div>
@@ -181,7 +183,7 @@ export default function PastaDetails() {
           {pasta.allowedIngredients?.length > 0 && (
             <div className={styles.card}>
               <div className={styles.cardBody}>
-                <h3 className={styles.sectionTitle}>Add-ons</h3>
+                <h3 className={styles.sectionTitle}>{t("Add-ons")}</h3>
                 <ul className={styles.list}>
                   {pasta.allowedIngredients.map((ing) => {
                     const checked = addedIds.has(ing.id);
@@ -189,7 +191,7 @@ export default function PastaDetails() {
                       <li key={ing.id} className={styles.item}>
                         <input className={styles.check} type="checkbox" checked={checked} onChange={() => toggleAdd(ing.id)} />
                         <div className={styles.itemTitle}><span className={styles.itemName}>{ing.name}</span></div>
-                        <span className={styles.itemPrice}>{ing.extraPrice > 0 ? `+${ing.extraPrice.toFixed(2)} EUR` : "Free"}</span>
+                        <span className={styles.itemPrice}>{ing.extraPrice > 0 ? `+${ing.extraPrice.toFixed(2)} EUR` : t("Free")}</span>
                       </li>
                     );
                   })}
@@ -202,14 +204,14 @@ export default function PastaDetails() {
         <div className={styles.summary}>
           <div className={styles.card}>
             <div className={styles.cardBody}>
-              <h3 className={styles.sectionTitle}>Options</h3>
+              <h3 className={styles.sectionTitle}>{t("Options")}</h3>
 
               <div className={styles.field} style={{ marginBottom: 12 }}>
-                <div className={styles.fieldLabel}>Sauce</div>
+                <div className={styles.fieldLabel}>{t("Sauce")}</div>
                 <select className={styles.select} value={sauceId ?? ""} onChange={(e) => setSauceId(Number(e.target.value))}>
                   {pasta.sauces.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} / {s.spicyLevel}{s.extraPrice > 0 ? ` (+${s.extraPrice.toFixed(2)} EUR)` : ""}
+                      {s.name} / {enumLabel(s.spicyLevel)}{s.extraPrice > 0 ? ` (+${s.extraPrice.toFixed(2)} EUR)` : ""}
                     </option>
                   ))}
                 </select>
@@ -217,25 +219,25 @@ export default function PastaDetails() {
 
               <div className={styles.row}>
                 <div className={styles.field} style={{ minWidth: 140 }}>
-                  <div className={styles.fieldLabel}>Quantity</div>
+                  <div className={styles.fieldLabel}>{t("Quantity")}</div>
                   <input className={styles.input} type="number" min={1} value={qty} onChange={(e) => setQty(Number(e.target.value) || 1)} />
                 </div>
                 <div className={`${styles.field} ${styles.note}`}>
-                  <div className={styles.fieldLabel}>Note</div>
-                  <input className={styles.input} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional note..." />
+                  <div className={styles.fieldLabel}>{t("Note")}</div>
+                  <input className={styles.input} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("Optional note...")} />
                 </div>
               </div>
 
               <div className={styles.total}>
-                <div><div className={styles.totalLabel}>Total</div><div className={styles.itemHint}>Preview price</div></div>
+                <div><div className={styles.totalLabel}>{t("Total")}</div><div className={styles.itemHint}>{t("Preview price")}</div></div>
                 <div className={styles.totalValue}>{totalPrice.toFixed(2)} EUR</div>
               </div>
 
               <div className={styles.actions}>
-                <button className={styles.btn} onClick={onSubmit}>{isEditMode ? "Save changes" : "Add to cart"}</button>
-                {isEditMode && <button className={`${styles.btn} ${styles.btnGhost}`} onClick={onCancel} type="button">Cancel</button>}
+                <button className={styles.btn} onClick={onSubmit}>{isEditMode ? t("Save changes") : t("Add to cart")}</button>
+                {isEditMode && <button className={`${styles.btn} ${styles.btnGhost}`} onClick={onCancel} type="button">{t("Cancel")}</button>}
               </div>
-              <div className={styles.tip}>The server calculates the final cart price.</div>
+              <div className={styles.tip}>{t("The server calculates the final cart price.")}</div>
             </div>
           </div>
         </div>

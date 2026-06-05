@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { productApi } from "../api/catalog";
 import { useCart } from "../context/CartContext";
+import { useLanguage } from "../context/LanguageContext";
 import styles from "../styles/DrinkDetails.module.css";
 
 function money(v) {
@@ -13,6 +14,7 @@ export default function DrinkDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const cart = useCart();
+  const { language, t } = useLanguage();
 
   const [drink, setDrink] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,7 @@ export default function DrinkDetails() {
         setLoading(true);
         setError(null);
 
-        const res = await productApi.drink(id);
+        const res = await productApi.drink(id, language);
 
         if (cancelled) return;
         setDrink(res);
@@ -35,7 +37,7 @@ export default function DrinkDetails() {
           e?.response?.data?.message ||
           e?.response?.data?.error ||
           e?.message ||
-          "Failed to load drink.";
+          t("Failed to load drink.");
         if (!cancelled) setError(msg);
       } finally {
         if (!cancelled) setLoading(false);
@@ -46,7 +48,7 @@ export default function DrinkDetails() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, language]);
 
   const price = useMemo(() => money(drink?.basePrice ?? drink?.price), [drink]);
 
@@ -76,12 +78,12 @@ export default function DrinkDetails() {
         e?.response?.data?.message ||
         e?.response?.data?.error ||
         e?.message ||
-        "Failed to add drink to cart.";
+        t("Failed to add drink to cart.");
       setError(msg);
     }
   }
 
-  if (loading) return <p className={styles.loading}>Loading…</p>;
+  if (loading) return <p className={styles.loading}>{t("Loading...")}</p>;
   if (error) return <p className={styles.error}>{error}</p>;
   if (!drink) return null;
 
@@ -99,15 +101,15 @@ export default function DrinkDetails() {
         <h1 className={styles.title}>{drink.name}</h1>
         <p className={styles.desc}>{drink.description}</p>
 
-        <p className={styles.price}>Price: {price.toFixed(2)} EUR</p>
+        <p className={styles.price}>{t("Price")}: {price.toFixed(2)} EUR</p>
 
         <button className={styles.btn} onClick={onAddToCart} disabled={!isAvailable}>
-          {isAvailable ? "Add to cart" : "Unavailable"}
+          {isAvailable ? t("Add to cart") : t("Unavailable")}
         </button>
 
         <div className={styles.linkRow}>
           <Link className={styles.link} to="/menu">
-            ← Back to menu
+            ← {t("Back to menu")}
           </Link>
         </div>
       </div>

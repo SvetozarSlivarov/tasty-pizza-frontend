@@ -1,0 +1,97 @@
+:root {
+  --tp-select-bg: rgba(255, 255, 255, 0.065);
+  --tp-select-border: rgba(255, 255, 255, 0.15);
+  --tp-select-text: #f7f8fb;
+  --tp-select-muted: rgba(200, 205, 215, 0.78);
+  --tp-select-accent: rgb(255, 196, 0);
+  --tp-select-accent-soft: rgba(255, 196, 0, 0.22);
+}
+
+select,
+select[class] {
+  min-height: 38px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--tp-select-border);
+  border-radius: 12px;
+  color: var(--tp-select-text);
+  background-color: var(--tp-select-bg);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--tp-select-accent) 50%),
+    linear-gradient(135deg, var(--tp-select-accent) 50%, transparent 50%),
+    linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.035));
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%,
+    0 0;
+  background-size:
+    6px 6px,
+    6px 6px,
+    100% 100%;
+  background-repeat: no-repeat;
+  padding: 8px 38px 8px 12px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  cursor: pointer;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease, transform .12s ease;
+}
+
+select:hover:not(:disabled),
+select[class]:hover:not(:disabled) {
+  border-color: rgba(255, 196, 0, 0.46);
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+select:focus,
+select[class]:focus {
+  outline: none;
+}
+
+select:focus-visible,
+select[class]:focus-visible {
+  border-color: rgba(255, 196, 0, 0.72);
+  box-shadow:
+    0 0 0 3px var(--tp-select-accent-soft),
+    inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+select:active:not(:disabled),
+select[class]:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+select:disabled,
+select[class]:disabled {
+  color: var(--tp-select-muted);
+  opacity: .66;
+  cursor: not-allowed;
+}
+
+select option,
+select[class] option {
+  color: #f7f8fb;
+  background: #111318;
+}
+
+select option:checked,
+select[class] option:checked {
+  color: #191a1f;
+  background: var(--tp-select-accent);
+}
+
+@media (max-width: 640px) {
+  select,
+  select[class] {
+    min-height: 42px;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  select,
+  select[class] {
+    transition: none;
+  }
+}

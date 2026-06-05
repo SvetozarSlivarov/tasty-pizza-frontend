@@ -1,13 +1,15 @@
 import styles from "../../../styles/table.module.css";
+import { useLanguage } from "../../../context/LanguageContext";
 
 export default function TypeTable({ rows = [], busy = false, onEdit, onDelete }) {
+  const { t } = useLanguage();
   return (
     <table className={styles.table}>
       <thead>
         <tr>
           <th className={styles.th}>ID</th>
-          <th className={styles.th}>Name</th>
-          <th className={styles.th}>Actions</th>
+          <th className={styles.th}>{t("Name")}</th>
+          <th className={styles.th}>{t("Actions")}</th>
         </tr>
       </thead>
       <tbody>
@@ -22,7 +24,7 @@ export default function TypeTable({ rows = [], busy = false, onEdit, onDelete })
                 disabled={busy}
                 onClick={() => onEdit?.(r.id)}
               >
-                Edit
+                {t("Edit")}
               </button>
 
               {onDelete && (
@@ -31,7 +33,7 @@ export default function TypeTable({ rows = [], busy = false, onEdit, onDelete })
                   disabled={busy}
                   onClick={() => onDelete(r.id)}
                 >
-                  Delete
+                  {t("Delete")}
                 </button>
               )}
             </td>

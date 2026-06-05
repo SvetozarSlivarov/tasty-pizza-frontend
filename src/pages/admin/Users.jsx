@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import styles from "../../styles/adminUsers.module.css";
 import { adminApi } from "../../api/admin";
 import { useAuth } from "../../context/AuthContext";
+import { useLanguage } from "../../context/LanguageContext";
 
-const ROLE_OPTIONS = ["USER", "ADMIN"];
+const ROLE_OPTIONS = ["CUSTOMER", "ADMIN"];
 const PAGE_SIZES = [2, 5, 10, 20, 50, 100];
 
 const SHOW_OPTIONS = [
@@ -15,6 +16,7 @@ const SHOW_OPTIONS = [
 
 export default function Users() {
   const auth = useAuth?.();
+  const { t, enumLabel } = useLanguage();
   const meId = auth?.user?.id ?? null;
   const meUsername = auth?.user?.username ?? null;
 
@@ -52,7 +54,7 @@ export default function Users() {
       setPage(nextPage);
       setSize(nextSize);
     } catch (e) {
-      setError(e?.message || "Failed to load users");
+      setError(e?.message || t("Failed to load users"));
     } finally {
       setLoading(false);
     }
@@ -77,7 +79,7 @@ export default function Users() {
   async function onChangeRole(u, newRole) {
     setError("");
     if (isMe(u)) {
-      setError("You cannot change your own role.");
+      setError(t("You cannot change your own role."));
       return;
     }
 
@@ -85,23 +87,23 @@ export default function Users() {
       await adminApi.changeRole(u.id, newRole);
       await load();
     } catch (e) {
-      setError(e?.message || "Failed to change role");
+      setError(e?.message || t("Failed to change role"));
     }
   }
 
   async function onDelete(u) {
     setError("");
     if (isMe(u)) {
-      setError("You cannot delete your own account.");
+      setError(t("You cannot delete your own account."));
       return;
     }
-    if (!window.confirm(`Soft delete user "${u.username}"?`)) return;
+    if (!window.confirm(`${t("Soft delete user")} "${u.username}"?`)) return;
 
     try {
       await adminApi.softDelete(u.id);
       await load();
     } catch (e) {
-      setError(e?.message || "Failed to delete user");
+      setError(e?.message || t("Failed to delete user"));
     }
   }
 
@@ -111,17 +113,17 @@ export default function Users() {
       await adminApi.restore(u.id);
       await load();
     } catch (e) {
-      setError(e?.message || "Failed to restore user");
+      setError(e?.message || t("Failed to restore user"));
     }
   }
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Users</h1>
+        <h1 className={styles.title}>{t("Users")}</h1>
 
         <div className={styles.headerActions}>
-          <span className={styles.muted}>{totalElements ? `${totalElements} total` : ""}</span>
+          <span className={styles.muted}>{totalElements ? `${totalElements} ${t("total")}` : ""}</span>
         </div>
       </div>
 
@@ -133,13 +135,13 @@ export default function Users() {
                 className={styles.search}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search by username / full name..."
+                placeholder={t("Search by username / full name...")}
                 disabled={loading}
               />
             </form>
 
             <div className={styles.filter}>
-              <span className={styles.filterLabel}>Show</span>
+              <span className={styles.filterLabel}>{t("Show")}</span>
               <select
                 className={styles.select}
                 value={show}
@@ -148,14 +150,14 @@ export default function Users() {
               >
                 {SHOW_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
-                    {o.label}
+                    {t(o.label)}
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {loading ? <div className={styles.loading}>Loading...</div> : null}
+          {loading ? <div className={styles.loading}>{t("Loading...")}</div> : null}
           {error ? <div className={styles.error}>{error}</div> : null}
 
           <div className={styles.tableWrap}>
@@ -163,12 +165,12 @@ export default function Users() {
               <thead>
                 <tr>
                   <th className={`${styles.th} ${styles.colId}`}>ID</th>
-                  <th className={styles.th}>Username</th>
-                  <th className={styles.th}>Full name</th>
-                  <th className={styles.th}>Role</th>
-                  <th className={`${styles.th} ${styles.colStatus}`}>Status</th>
-                  <th className={styles.th}>Token</th>
-                  <th className={`${styles.th} ${styles.colActions}`}>Actions</th>
+                  <th className={styles.th}>{t("Username")}</th>
+                  <th className={styles.th}>{t("Full name")}</th>
+                  <th className={styles.th}>{t("Role")}</th>
+                  <th className={`${styles.th} ${styles.colStatus}`}>{t("Status")}</th>
+                  <th className={styles.th}>{t("Token")}</th>
+                  <th className={`${styles.th} ${styles.colActions}`}>{t("Actions")}</th>
                 </tr>
               </thead>
 
@@ -182,7 +184,7 @@ export default function Users() {
                       <td className={styles.td}>{u.id}</td>
                       <td className={styles.td}>
                         <span className={me ? styles.muted : undefined}>{u.username}</span>
-                        {me ? <span className={styles.muted}> (you)</span> : null}
+                        {me ? <span className={styles.muted}> ({t("you")})</span> : null}
                       </td>
                       <td className={`${styles.td} ${styles.ellipsis}`}>
                         {u.fullname || <span className={styles.muted}>-</span>}
@@ -194,18 +196,18 @@ export default function Users() {
                           value={u.role}
                           disabled={loading || deleted || me}
                           onChange={(e) => onChangeRole(u, e.target.value)}
-                          title={me ? "You cannot change your own role" : ""}
+                          title={me ? t("You cannot change your own role") : ""}
                         >
                           {ROLE_OPTIONS.map((r) => (
                             <option key={r} value={r}>
-                              {r}
+                              {enumLabel(r)}
                             </option>
                           ))}
                         </select>
                       </td>
 
                       <td className={styles.td}>
-                        <span className={styles.pill}>{deleted ? "deleted" : "active"}</span>
+                        <span className={styles.pill}>{deleted ? t("Deleted") : t("Active")}</span>
                       </td>
 
                       <td className={styles.td}>{u.tokenVersion}</td>
@@ -222,7 +224,7 @@ export default function Users() {
                               navigate(`/admin/orders?${params.toString()}`);
                             }}
                           >
-                            Orders
+                            {t("Orders")}
                           </button>
 
                           {!deleted ? (
@@ -230,9 +232,9 @@ export default function Users() {
                               className={styles.btn}
                               disabled={loading || me}
                               onClick={() => onDelete(u)}
-                              title={me ? "You cannot delete your own account" : ""}
+                              title={me ? t("You cannot delete your own account") : ""}
                             >
-                              Delete
+                              {t("Delete")}
                             </button>
                           ) : (
                             <button
@@ -240,7 +242,7 @@ export default function Users() {
                               disabled={loading}
                               onClick={() => onRestore(u)}
                             >
-                              Restore
+                              {t("Restore")}
                             </button>
                           )}
                         </div>
@@ -252,7 +254,7 @@ export default function Users() {
                 {!loading && users.length === 0 ? (
                   <tr>
                     <td className={styles.empty} colSpan={7}>
-                      No users found.
+                      {t("No users found.")}
                     </td>
                   </tr>
                 ) : null}
@@ -267,11 +269,11 @@ export default function Users() {
                 disabled={!canPrev || loading}
                 onClick={() => load({ nextPage: page - 1 })}
               >
-                Prev
+                {t("Prev")}
               </button>
 
               <span className={styles.pageInfo}>
-                Page {page + 1}
+                {t("Page")} {page + 1}
                 {totalPages ? ` / ${totalPages}` : ""}
               </span>
 
@@ -280,12 +282,12 @@ export default function Users() {
                 disabled={!canNext || loading}
                 onClick={() => load({ nextPage: page + 1 })}
               >
-                Next
+                {t("Next")}
               </button>
             </div>
 
             <div className={styles.pageSize}>
-              <span>Rows:</span>
+              <span>{t("Rows")}:</span>
               <select
                 className={styles.select}
                 value={size}

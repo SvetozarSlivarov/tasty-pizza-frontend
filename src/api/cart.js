@@ -46,12 +46,16 @@ function mapPatchPayload(patch) {
     return out;
 }
 
+function withLang(lang) {
+    return lang ? `?lang=${encodeURIComponent(lang)}` : "";
+}
+
 export const cartApi = {
-    get: () => http.get("/cart"),
-    addDrink: (payload) => http.post("/cart/items/drink", mapAddDrinkPayload(payload)),
-    addPizza: (payload) => http.post("/cart/items/pizza", mapAddPizzaPayload(payload)),
-    addPasta: (payload) => http.post("/cart/items/pasta", mapAddPastaPayload(payload)),
-    updateItem: (itemId, patch) => http.patch(`/cart/items/${itemId}`, mapPatchPayload(patch)),
-    removeItem: (itemId) => http.del(`/cart/items/${itemId}`),
-    checkout: ({ phone, address }) => http.post("/cart/checkout", { phone, address }),
+    get: (lang = "en") => http.get(`/cart${withLang(lang)}`),
+    addDrink: (payload, lang = "en") => http.post(`/cart/items/drink${withLang(lang)}`, mapAddDrinkPayload(payload)),
+    addPizza: (payload, lang = "en") => http.post(`/cart/items/pizza${withLang(lang)}`, mapAddPizzaPayload(payload)),
+    addPasta: (payload, lang = "en") => http.post(`/cart/items/pasta${withLang(lang)}`, mapAddPastaPayload(payload)),
+    updateItem: (itemId, patch, lang = "en") => http.patch(`/cart/items/${itemId}${withLang(lang)}`, mapPatchPayload(patch)),
+    removeItem: (itemId, lang = "en") => http.del(`/cart/items/${itemId}${withLang(lang)}`),
+    checkout: ({ phone, address }, lang = "en") => http.post(`/cart/checkout${withLang(lang)}`, { phone, address }),
 };

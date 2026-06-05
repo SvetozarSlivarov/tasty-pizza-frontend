@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { adminApi } from "../../api/admin";
+import { useLanguage } from "../../context/LanguageContext";
 import styles from "../../styles/admin.module.css";
+import TranslationFields, {
+  SUPPORTED_LANGUAGES,
+  emptyTranslations,
+  firstLanguageWithContent,
+  hasAnyTranslatedValue,
+  mergePreviewTranslations,
+  translationsFromResponse,
+  translationsToRequest,
+} from "./components/TranslationFields";
 
 export default function Ingredients() {
+  const { language, t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [types, setTypes] = useState([]);
 
@@ -12,6 +23,8 @@ export default function Ingredients() {
   const [show, setShow] = useState("all"); // active | all | deleted
 
   const [name, setName] = useState("");
+  const [translations, setTranslations] = useState(emptyTranslations(["name"]));
+  const [translating, setTranslating] = useState(false);
   const [typeId, setTypeId] = useState("");
 
   const [editingId, setEditingId] = useState(null);
@@ -22,14 +35,14 @@ export default function Ingredients() {
     setError(null);
     try {
       const [ingData, typeData] = await Promise.all([
-        adminApi.listIngredientsWithType(show),
-        adminApi.listIngredientTypes(),
+        adminApi.listIngredientsWithType(show, language),
+        adminApi.listIngredientTypes(language),
       ]);
 
       setRows(Array.isArray(ingData) ? ingData : []);
       setTypes(Array.isArray(typeData) ? typeData : []);
     } catch (e) {
-      setError(e?.message || "Failed to load ingredients");
+      setError(e?.message || t("Failed to load ingredients"));
     } finally {
       setBusy(false);
     }
@@ -38,7 +51,7 @@ export default function Ingredients() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show]);
+  }, [show, language]);
 
   const editingRow = useMemo(
     () => rows.find((r) => r.id === editingId) || null,
@@ -48,20 +61,65 @@ export default function Ingredients() {
   useEffect(() => {
     if (!editingRow) return;
     setName(editingRow.name ?? "");
-    // при теб type може да е: type: {id,name}
     const tid = editingRow?.type?.id ?? editingRow?.typeId ?? "";
     setTypeId(tid ? String(tid) : "");
-  }, [editingRow]);
+
+    (async () => {
+      setError(null);
+      try {
+        const response = await adminApi.getTranslations("INGREDIENT", editingRow.id);
+        const next = translationsFromResponse(response, ["name"]);
+        if (!next.en.name) next.en.name = editingRow.name ?? "";
+        setTranslations(next);
+      } catch (e) {
+        const fallback = emptyTranslations(["name"]);
+        fallback.en.name = editingRow.name ?? "";
+        setTranslations(fallback);
+      }
+    })();
+  }, [editingRow, t]);
 
   const resetForm = () => {
     setEditingId(null);
     setName("");
+    setTranslations(emptyTranslations(["name"]));
     setTypeId("");
   };
 
+  function setTranslationField(lang, fieldName, value) {
+    setTranslations((current) => ({
+      ...current,
+      [lang]: { ...current[lang], [fieldName]: value },
+    }));
+  }
+
+  async function generateTranslations() {
+    setError(null);
+    if (!hasAnyTranslatedValue(translations, "name")) {
+      setError(t("Fill at least one language before generating translations"));
+      return;
+    }
+
+    setTranslating(true);
+    try {
+      const response = await adminApi.previewTranslations({
+        entityType: "INGREDIENT",
+        sourceLanguage: firstLanguageWithContent(translations, ["name"]),
+        targetLanguages: SUPPORTED_LANGUAGES,
+        fields: translationsToRequest(translations, ["name"]),
+      });
+      setTranslations((current) => mergePreviewTranslations(current, response, ["name"]));
+    } catch (e) {
+      setError(e?.message || t("Translation generation failed"));
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   const submit = async (e) => {
     e.preventDefault();
-    const n = name.trim();
+    const confirmedTranslations = translationsToRequest(translations, ["name"]);
+    const n = isEditing ? confirmedTranslations.name.en || name.trim() : confirmedTranslations.name.en;
     const tid = Number(typeId);
 
     if (!n || !Number.isFinite(tid)) return;
@@ -73,25 +131,26 @@ export default function Ingredients() {
         const updated = await adminApi.updateIngredient(editingId, {
           name: n,
           typeId: tid,
+          translations: confirmedTranslations,
         });
         setRows((prev) =>
           prev.map((r) => (r.id === editingId ? (updated ?? r) : r))
         );
       } else {
-        const created = await adminApi.createIngredient({ name: n, typeId: tid });
+        const created = await adminApi.createIngredient({ name: n, typeId: tid, translations: confirmedTranslations });
         if (created?.id != null) setRows((prev) => [created, ...prev]);
         else await load();
       }
       resetForm();
     } catch (e2) {
-      setError(e2?.message || "Save failed");
+      setError(e2?.message || t("Save failed"));
     } finally {
       setBusy(false);
     }
   };
 
   const softDelete = async (id) => {
-    if (!window.confirm(`Delete ingredient #${id}?`)) return;
+    if (!window.confirm(`${t("Delete ingredient")} #${id}?`)) return;
 
     setBusy(true);
     setError(null);
@@ -102,7 +161,7 @@ export default function Ingredients() {
       else setRows((prev) => prev.map((r) => (r.id === id ? { ...r, deleted: true } : r)));
       if (editingId === id) resetForm();
     } catch (e) {
-      setError(e?.message || "Delete failed");
+      setError(e?.message || t("Delete failed"));
     } finally {
       setBusy(false);
     }
@@ -120,7 +179,7 @@ export default function Ingredients() {
         await load();
       }
     } catch (e) {
-      setError(e?.message || "Restore failed");
+      setError(e?.message || t("Restore failed"));
     } finally {
       setBusy(false);
     }
@@ -129,7 +188,7 @@ export default function Ingredients() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h2>Ingredients</h2>
+        <h2>{t("Ingredients")}</h2>
 
         <div className={styles.headerRight}>
           <select
@@ -138,13 +197,13 @@ export default function Ingredients() {
             onChange={(e) => setShow(e.target.value)}
             disabled={busy}
           >
-            <option value="active">Active</option>
-            <option value="all">All</option>
-            <option value="deleted">Deleted</option>
+            <option value="active">{t("Active")}</option>
+            <option value="all">{t("All")}</option>
+            <option value="deleted">{t("Deleted")}</option>
           </select>
 
           <button className={styles.btn} disabled={busy} onClick={load}>
-            Reload
+            {t("Reload")}
           </button>
         </div>
       </div>
@@ -153,26 +212,25 @@ export default function Ingredients() {
 
       <form className={styles.card} onSubmit={submit}>
         <div className={styles.inlineFormRow}>
-          <div className={styles.row}>
-            <label className={styles.label}>Name</label>
-            <input
-              className={styles.input}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={busy}
-              placeholder="e.g. Mozzarella"
-            />
-          </div>
+          <TranslationFields
+            styles={styles}
+            fields={["name"]}
+            translations={translations}
+            disabled={busy || translating}
+            translating={translating}
+            onChange={setTranslationField}
+            onGenerate={generateTranslations}
+          />
 
           <div className={styles.row}>
-            <label className={styles.label}>Type</label>
+            <label className={styles.label}>{t("Type")}</label>
             <select
               className={styles.input}
               value={typeId}
               onChange={(e) => setTypeId(e.target.value)}
               disabled={busy}
             >
-              <option value="">Select type…</option>
+              <option value="">{t("Select type...")}</option>
               {types.map((t) => (
                 <option key={t.id} value={String(t.id)}>
                   {t.name}
@@ -184,9 +242,9 @@ export default function Ingredients() {
           <div className={styles.inlineFormActions}>
             <button
               className={styles.btnPrimary}
-              disabled={busy || !name.trim() || !typeId}
+              disabled={busy || translating || !translations.en.name.trim() || !typeId}
             >
-              {isEditing ? "Update" : "Create"}
+              {isEditing ? t("Update") : t("Confirm and create")}
             </button>
 
             {isEditing && (
@@ -196,7 +254,7 @@ export default function Ingredients() {
                 disabled={busy}
                 onClick={resetForm}
               >
-                Cancel
+                {t("Cancel")}
               </button>
             )}
           </div>
@@ -208,10 +266,10 @@ export default function Ingredients() {
           <thead>
             <tr>
               <th className={styles.th}>ID</th>
-              <th className={styles.th}>Name</th>
-              <th className={styles.th}>Type</th>
-              <th className={styles.th}>Status</th>
-              <th className={styles.th}>Actions</th>
+              <th className={styles.th}>{t("Name")}</th>
+              <th className={styles.th}>{t("Type")}</th>
+              <th className={styles.th}>{t("Status")}</th>
+              <th className={styles.th}>{t("Actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -221,7 +279,7 @@ export default function Ingredients() {
                 <td className={styles.td}>{r.name}</td>
                 <td className={styles.td}>{r?.type?.name ?? "-"}</td>
                 <td className={styles.td}>
-                  {r.deleted ? "DELETED" : "ACTIVE"}
+                  {r.deleted ? t("DELETED") : t("ACTIVE")}
                 </td>
                 <td className={styles.td}>
                   <button
@@ -229,7 +287,7 @@ export default function Ingredients() {
                     disabled={busy}
                     onClick={() => setEditingId(r.id)}
                   >
-                    Edit
+                    {t("Edit")}
                   </button>
 
                   {!r.deleted ? (
@@ -238,7 +296,7 @@ export default function Ingredients() {
                       disabled={busy}
                       onClick={() => softDelete(r.id)}
                     >
-                      Delete
+                      {t("Delete")}
                     </button>
                   ) : (
                     <button
@@ -246,7 +304,7 @@ export default function Ingredients() {
                       disabled={busy}
                       onClick={() => restore(r.id)}
                     >
-                      Restore
+                      {t("Restore")}
                     </button>
                   )}
                 </td>
@@ -256,7 +314,7 @@ export default function Ingredients() {
             {rows.length === 0 && (
               <tr>
                 <td className={styles.td} colSpan={5}>
-                  No items
+                  {t("No items")}
                 </td>
               </tr>
             )}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { catalogApi, productApi } from "../api/catalog";
 import { useCart } from "../context/CartContext";
+import { useLanguage } from "../context/LanguageContext";
 import "../styles/menu.css";
 import "../styles/modal.css";
 import QuickModal from "../components/QuickModal";
@@ -15,7 +16,7 @@ const SORTS = [
   { key: "name", label: "Name A-Z" },
 ];
 
-function useCatalog() {
+function useCatalog(lang) {
   const [pizzas, setPizzas] = useState([]);
   const [pastas, setPastas] = useState([]);
   const [drinks, setDrinks] = useState([]);
@@ -28,7 +29,7 @@ function useCatalog() {
       try {
         setLoading(true);
         setError(null);
-        const [pz, pa, dr] = await Promise.all([catalogApi.pizzas(true), catalogApi.pastas(true), catalogApi.drinks()]);
+        const [pz, pa, dr] = await Promise.all([catalogApi.pizzas(true, lang), catalogApi.pastas(true, lang), catalogApi.drinks(lang)]);
         if (!mounted) return;
         setPizzas(Array.isArray(pz) ? pz : []);
         setPastas(Array.isArray(pa) ? pa : []);
@@ -40,7 +41,7 @@ function useCatalog() {
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [lang]);
 
   return { pizzas, pastas, drinks, loading, error };
 }
@@ -72,15 +73,15 @@ function ProductCard({ item, onOpenQuick, ctaLabel = "Add", onAdd }) {
   );
 }
 
-function Section({ id, title, items, sortBy, setSortBy, emptyText, ctaLabel, onAdd, openQuickModal }) {
+function Section({ id, title, items, sortBy, setSortBy, emptyText, ctaLabel, onAdd, openQuickModal, t }) {
   return (
     <section className="section" id={id}>
       <div className="section-head">
         <h3>{title}</h3>
         <div className="controls">
-          <label>Sort by:
+          <label>{t("Sort by")}:
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+              {SORTS.map((s) => <option key={s.key} value={s.key}>{t(s.label)}</option>)}
             </select>
           </label>
         </div>
@@ -96,7 +97,8 @@ export default function Menu() {
   const navigate = useNavigate();
   const location = useLocation();
   const cart = useCart();
-  const { pizzas, pastas, drinks, loading, error } = useCatalog();
+  const { language, t } = useLanguage();
+  const { pizzas, pastas, drinks, loading, error } = useCatalog(language);
   const [sortByPizzas, setSortByPizzas] = useState("new");
   const [sortByPastas, setSortByPastas] = useState("new");
   const [sortByDrinks, setSortByDrinks] = useState("new");
@@ -134,27 +136,27 @@ export default function Menu() {
       if (isPizza(item)) {
         let v = option;
         if (!v) {
-          const p = await productApi.pizza(item.id, true);
+          const p = await productApi.pizza(item.id, true, language);
           v = Array.isArray(p?.variants) && p.variants.length ? p.variants[0] : null;
         }
         const variantId = v?.id ?? (quickVariantId ? Number(quickVariantId) : null);
-        if (!variantId) throw new Error("Please select a pizza variant.");
+        if (!variantId) throw new Error(t("Please select a pizza variant."));
         await cart.addPizza({ productId: item.id, variantId, quantity: 1, removeIngredientIds: [], addIngredientIds: [], note: "" });
       } else if (isPasta(item)) {
         let s = option;
         if (!s) {
-          const p = await productApi.pasta(item.id);
+          const p = await productApi.pasta(item.id, language);
           s = Array.isArray(p?.sauces) && p.sauces.length ? p.sauces[0] : null;
         }
         const pastaSauceId = s?.id ?? (quickSauceId ? Number(quickSauceId) : null);
-        if (!pastaSauceId) throw new Error("Please select a pasta sauce.");
+        if (!pastaSauceId) throw new Error(t("Please select a pasta sauce."));
         await cart.addPasta({ productId: item.id, pastaSauceId, quantity: 1, addIngredientIds: [], note: "" });
       } else {
         await cart.addDrink({ productId: item.id, quantity: 1, note: "" });
       }
       setQuickItem(null);
     } catch (e) {
-      alert(e?.data?.message || e?.message || "Failed to add to cart");
+      alert(e?.data?.message || e?.message || t("Failed to add to cart"));
     } finally {
       setAdding(false);
     }
@@ -168,12 +170,12 @@ export default function Menu() {
     setQuickVariantId(null);
     setQuickSauceId(null);
     if (isPizza(item)) {
-      try { setQuickLoading(true); const p = await productApi.pizza(item.id, true); setQuickPizza(p); if (p?.variants?.length) setQuickVariantId(String(p.variants[0].id)); }
-      catch (e) { setQuickError(e?.data?.message || e?.message || "Failed to load pizza details."); }
+      try { setQuickLoading(true); const p = await productApi.pizza(item.id, true, language); setQuickPizza(p); if (p?.variants?.length) setQuickVariantId(String(p.variants[0].id)); }
+      catch (e) { setQuickError(e?.data?.message || e?.message || t("Failed to load pizza details.")); }
       finally { setQuickLoading(false); }
     } else if (isPasta(item)) {
-      try { setQuickLoading(true); const p = await productApi.pasta(item.id); setQuickPasta(p); if (p?.sauces?.length) setQuickSauceId(String(p.sauces[0].id)); }
-      catch (e) { setQuickError(e?.data?.message || e?.message || "Failed to load pasta details."); }
+      try { setQuickLoading(true); const p = await productApi.pasta(item.id, language); setQuickPasta(p); if (p?.sauces?.length) setQuickSauceId(String(p.sauces[0].id)); }
+      catch (e) { setQuickError(e?.data?.message || e?.message || t("Failed to load pasta details.")); }
       finally { setQuickLoading(false); }
     }
   };
@@ -186,21 +188,21 @@ export default function Menu() {
   return (
     <div className="menu-page">
       <header className="menu-header">
-        <h2>Menu</h2>
-        <p className="subtitle">Browse pizzas, pastas and drinks. Filter, sort and pick your favorites.</p>
-        <div className="toolbar"><div className="search"><input type="search" placeholder="Search by name or description..." value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search in menu" /></div></div>
-        <nav className="menu-section-nav" aria-label="Menu sections">
-          <a href="#pizzas">Pizzas</a>
-          <a href="#pastas">Pastas</a>
-          <a href="#drinks">Drinks</a>
+        <h2>{t("Menu")}</h2>
+        <p className="subtitle">{t("Browse pizzas, pastas and drinks. Filter, sort and pick your favorites.")}</p>
+        <div className="toolbar"><div className="search"><input type="search" placeholder={t("Search by name or description...")} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t("Search in menu")} /></div></div>
+        <nav className="menu-section-nav" aria-label={t("Menu sections")}>
+          <a href="#pizzas">{t("Pizzas")}</a>
+          <a href="#pastas">{t("Pastas")}</a>
+          <a href="#drinks">{t("Drinks")}</a>
         </nav>
       </header>
       {error && <div className="alert error">{error}</div>}
       {loading && <div className="skeleton-grid" aria-busy>{Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton-card" />)}</div>}
       {!loading && <>
-        <Section id="pizzas" title="Pizzas" items={filteredPizzas} sortBy={sortByPizzas} setSortBy={setSortByPizzas} emptyText="No pizzas found." ctaLabel="Add pizza" onAdd={onAddToCart} openQuickModal={openQuickModal} />
-        <Section id="pastas" title="Pastas" items={filteredPastas} sortBy={sortByPastas} setSortBy={setSortByPastas} emptyText="No pastas found." ctaLabel="Add pasta" onAdd={onAddToCart} openQuickModal={openQuickModal} />
-        <Section id="drinks" title="Drinks" items={filteredDrinks} sortBy={sortByDrinks} setSortBy={setSortByDrinks} emptyText="No drinks found." ctaLabel="Add drink" onAdd={onAddToCart} openQuickModal={openQuickModal} />
+        <Section id="pizzas" title={t("Pizzas")} items={filteredPizzas} sortBy={sortByPizzas} setSortBy={setSortByPizzas} emptyText={t("No pizzas found.")} ctaLabel={t("Add pizza")} onAdd={onAddToCart} openQuickModal={openQuickModal} t={t} />
+        <Section id="pastas" title={t("Pastas")} items={filteredPastas} sortBy={sortByPastas} setSortBy={setSortByPastas} emptyText={t("No pastas found.")} ctaLabel={t("Add pasta")} onAdd={onAddToCart} openQuickModal={openQuickModal} t={t} />
+        <Section id="drinks" title={t("Drinks")} items={filteredDrinks} sortBy={sortByDrinks} setSortBy={setSortByDrinks} emptyText={t("No drinks found.")} ctaLabel={t("Add drink")} onAdd={onAddToCart} openQuickModal={openQuickModal} t={t} />
       </>}
       {quickItem && <QuickModal item={quickItem} pizzaDetails={quickPizza} pastaDetails={quickPasta} selectedVariantId={quickVariantId} setSelectedVariantId={setQuickVariantId} selectedSauceId={quickSauceId} setSelectedSauceId={setQuickSauceId} onAdd={onAddToCart} onDetails={goDetails} onClose={() => setQuickItem(null)} loading={quickLoading} error={quickError} adding={adding} currency="EUR" fallbackSrc={FallbackImg} />}
     </div>

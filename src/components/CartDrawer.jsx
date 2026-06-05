@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
+import { useLanguage } from "../context/LanguageContext";
 import "../styles/cart.css";
 import CheckoutModal from "../components/CheckoutModal";
 import SuccessCelebration from "../components/SuccessCelebration";
 
-function formatCustomizations(it) {
+function formatCustomizations(it, t) {
   if (!Array.isArray(it.customizations) || it.customizations.length === 0) return null;
   const formatted = it.customizations
     .filter((c) => c?.ingredientId != null && c?.action)
@@ -20,11 +21,12 @@ function formatCustomizations(it) {
   const full = formatted.join(", ");
   if (formatted.length <= LIMIT) return { display: full, title: full };
   const head = formatted.slice(0, LIMIT).join(", ");
-  return { display: `${head}, ... +${formatted.length - LIMIT} more`, title: full };
+  return { display: `${head}, ... +${formatted.length - LIMIT} ${t("more", "more")}`, title: full };
 }
 
 export default function CartDrawer() {
   const cart = useCart();
+  const { t, enumLabel } = useLanguage();
   const [openCheckout, setOpenCheckout] = useState(false);
   const [showCelebrate, setShowCelebrate] = useState(false);
   const isOpen = cart.isOpen;
@@ -50,13 +52,13 @@ export default function CartDrawer() {
       <div className={`cart-backdrop ${cart.isOpen ? "open" : ""}`} onClick={cart.close} />
       <aside className={`cart-drawer ${cart.isOpen ? "open" : ""}`} aria-hidden={!cart.isOpen}>
         <header className="cart-header">
-          <h3>Your cart</h3>
-          <button className="icon-btn" onClick={cart.close} aria-label="Close">x</button>
+          <h3>{t("Your cart")}</h3>
+          <button className="icon-btn" onClick={cart.close} aria-label={t("Close")}>x</button>
         </header>
 
         <div className="cart-body">
           {cart.error && <p className="alert error">{cart.error}</p>}
-          {!cart.loading && cart.items.length === 0 && <div className="empty"><p>Your cart is empty.</p><p className="muted">Add items from the menu.</p></div>}
+          {!cart.loading && cart.items.length === 0 && <div className="empty"><p>{t("Your cart is empty.")}</p><p className="muted">{t("Add items from the menu.")}</p></div>}
 
           {!cart.loading && cart.items.length > 0 && (
             <ul className="cart-list">
@@ -64,7 +66,7 @@ export default function CartDrawer() {
                 const isPizza = it.type === "pizza";
                 const isPasta = it.type === "pasta";
                 const isDrink = it.type === "drink";
-                const customizationSummary = (isPizza || isPasta) ? formatCustomizations(it) : null;
+                const customizationSummary = (isPizza || isPasta) ? formatCustomizations(it, t) : null;
                 const lineTotal = (Number(it.unitPrice) || 0) * (Number(it.qty) || 0);
                 const ea = Number(it.unitPrice) || 0;
                 const editPath = isPizza ? `/pizza/${it.productId}?editItemId=${it.id}` : isPasta ? `/pasta/${it.productId}?editItemId=${it.id}` : null;
@@ -78,22 +80,22 @@ export default function CartDrawer() {
 
                     <div className="ci-main">
                       <div className="ci-title">
-                        <span className={`ci-badge ${isPizza ? "pizza" : isPasta ? "pasta" : "drink"}`}>{badge}</span>
+                        <span className={`ci-badge ${isPizza ? "pizza" : isPasta ? "pasta" : "drink"}`}>{enumLabel(badge)}</span>
                         <div className="ci-name">
                           <strong className="ci-product-name">{it.name}</strong>
                           {it.variantLabel && <span className="ci-variant">{it.variantLabel}</span>}
-                          {isPasta && it.pastaSauceName && <span className="ci-variant">{it.pastaSauceName}{it.pastaSauceSpicyLevel ? ` / ${it.pastaSauceSpicyLevel}` : ""}</span>}
+                          {isPasta && it.pastaSauceName && <span className="ci-variant">{it.pastaSauceName}{it.pastaSauceSpicyLevel ? ` / ${enumLabel(it.pastaSauceSpicyLevel)}` : ""}</span>}
                         </div>
                       </div>
 
                       {(isPizza || isPasta) && customizationSummary && <div className="ci-customizations-inline" title={customizationSummary.title}>{customizationSummary.display}</div>}
-                      {isDrink && <div className="ci-customizations-inline muted">No options</div>}
+                      {isDrink && <div className="ci-customizations-inline muted">{t("No options")}</div>}
 
                       <div className="ci-meta">
                         <div className="qty">
-                          <button className="icon-btn" onClick={() => cart.updateQty(it.id, it.qty - 1)} aria-label="Decrease" disabled={it.qty <= 1} title="Decrease">-</button>
-                          <input type="number" min={1} value={it.qty} onChange={(e) => cart.updateQty(it.id, Number(e.target.value) || 1)} aria-label="Quantity" />
-                          <button className="icon-btn" onClick={() => cart.updateQty(it.id, it.qty + 1)} aria-label="Increase" title="Increase">+</button>
+                          <button className="icon-btn" onClick={() => cart.updateQty(it.id, it.qty - 1)} aria-label={t("Decrease")} disabled={it.qty <= 1} title={t("Decrease")}>-</button>
+                          <input type="number" min={1} value={it.qty} onChange={(e) => cart.updateQty(it.id, Number(e.target.value) || 1)} aria-label={t("Quantity")} />
+                          <button className="icon-btn" onClick={() => cart.updateQty(it.id, it.qty + 1)} aria-label={t("Increase")} title={t("Increase")}>+</button>
                         </div>
                         <div className="price">{lineTotal.toFixed(2)} EUR <span className="muted per">({ea.toFixed(2)} ea)</span></div>
                       </div>
@@ -101,11 +103,11 @@ export default function CartDrawer() {
 
                     <div className="ci-actions">
                       {editPath && (
-                        <Link to={editPath} className="icon-btn cart-action-btn" onClick={cart.close} aria-label={`Edit ${badge.toLowerCase()}`} title="Edit">
+                        <Link to={editPath} className="icon-btn cart-action-btn" onClick={cart.close} aria-label={`${t("Edit")} ${enumLabel(badge)}`} title={t("Edit")}>
                           <FiEdit2 aria-hidden="true" />
                         </Link>
                       )}
-                      <button className="icon-btn cart-action-btn" onClick={() => cart.remove(it.id)} aria-label="Remove item" title="Remove">
+                      <button className="icon-btn cart-action-btn" onClick={() => cart.remove(it.id)} aria-label={t("Remove item")} title={t("Remove")}>
                         <FiTrash2 aria-hidden="true" />
                       </button>
                     </div>
@@ -117,10 +119,10 @@ export default function CartDrawer() {
         </div>
 
         <footer className="cart-footer">
-          <div className="row"><span>Subtotal</span><strong>{cart.subtotal.toFixed(2)} EUR</strong></div>
+          <div className="row"><span>{t("Subtotal")}</span><strong>{cart.subtotal.toFixed(2)} EUR</strong></div>
           <div className="row actions">
-            <button className="btn outline" onClick={cart.clear} disabled={cart.items.length === 0}>Clear</button>
-            <button className="btn" onClick={() => setOpenCheckout(true)} disabled={cart.items.length === 0}>Checkout</button>
+            <button className="btn outline" onClick={cart.clear} disabled={cart.items.length === 0}>{t("Clear")}</button>
+            <button className="btn" onClick={() => setOpenCheckout(true)} disabled={cart.items.length === 0}>{t("Checkout")}</button>
           </div>
         </footer>
       </aside>

@@ -1,5 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "../../../styles/Drinks.module.css";
+import { useLanguage } from "../../../context/LanguageContext";
+import { adminApi } from "../../../api/admin";
+import TranslationFields, {
+    SUPPORTED_LANGUAGES,
+    emptyTranslations,
+    firstLanguageWithContent,
+    hasAnyTranslatedValue,
+    mergePreviewTranslations,
+    translationsFromResponse,
+    translationsToRequest,
+} from "./TranslationFields";
 
 export function normalizeDrink(d) {
     return {
@@ -12,6 +23,7 @@ export function normalizeDrink(d) {
                 : d?.price != null
                     ? String(d.price)
                     : "",
+        translations: d?.translations,
     };
 }
 
@@ -20,10 +32,37 @@ const PRICE_MAX = 1000;
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024; // 5MB
 
 export default function DrinkForm({ initial, onSubmit, onCancel }) {
+    const { t } = useLanguage();
+    const isCreate = !initial?.id;
     const [model, setModel] = useState(normalizeDrink(initial));
+    const [translations, setTranslations] = useState(emptyTranslations);
     const [imageFile, setImageFile] = useState(null);
     const [busy, setBusy] = useState(false);
+    const [translating, setTranslating] = useState(false);
     const [errors, setErrors] = useState({});
+
+    useEffect(() => {
+        const fallback = emptyTranslations();
+        fallback.en.name = model.name || "";
+        fallback.en.description = model.description || "";
+
+        if (isCreate || !initial?.id) {
+            setTranslations(fallback);
+            return;
+        }
+
+        (async () => {
+            try {
+                const response = await adminApi.getTranslations("PRODUCT", initial.id);
+                const next = translationsFromResponse(response);
+                if (!next.en.name) next.en.name = model.name || "";
+                if (!next.en.description) next.en.description = model.description || "";
+                setTranslations(next);
+            } catch {
+                setTranslations(fallback);
+            }
+        })();
+    }, [isCreate, initial?.id, model.name, model.description]);
 
     function update(k, v) {
         setModel((m) => ({ ...m, [k]: v }));
@@ -31,9 +70,10 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
 
     function validate(next = model) {
         const e = {};
-        const name = String(next.name || "").trim();
-        if (name.length < 2) e.name = "Name must be at least 2 characters.";
-        if (name.length > 100) e.name = "Name cannot exceed 100 characters.";
+        const name = String(translations.en.name || "").trim();
+        if (!hasAnyTranslatedValue(translations, "name")) e.name = t("Name is required.");
+        else if (name.length < 2) e.name = t("Name must be at least 2 characters.");
+        if (name.length > 100) e.name = t("Name cannot exceed 100 characters.");
 
         const priceNum = Number(String(next.basePrice).replace(",", "."));
         if (!Number.isFinite(priceNum)) e.basePrice = "Price must be a number.";
@@ -41,12 +81,12 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
         else if (priceNum > PRICE_MAX) e.basePrice = `Price cannot exceed ${PRICE_MAX.toFixed(2)}.`;
 
         if (next.description && String(next.description).length > 1000) {
-            e.description = "Description is too long (max 1000 characters).";
+            e.description = t("Description is too long (max 1000 characters).");
         }
 
         if (imageFile) {
-            if (!/^image\//.test(imageFile.type)) e.image = "Only image files are allowed.";
-            if (imageFile.size > IMAGE_MAX_BYTES) e.image = "Image must be ≤ 5MB.";
+            if (!/^image\//.test(imageFile.type)) e.image = t("Only image files are allowed.");
+            if (imageFile.size > IMAGE_MAX_BYTES) e.image = t("Image must be ≤ 5MB.");
         }
         setErrors(e);
         return e;
@@ -55,7 +95,7 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
     const canSave = useMemo(() => {
         const e = validate(model);
         return Object.keys(e).length === 0;
-    }, [model, imageFile]);
+    }, [model, imageFile, translations, isCreate]);
 
     function onPriceChange(raw) {
         const val = raw.replace(",", ".");
@@ -75,15 +115,49 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
         setTimeout(() => validate(model), 0);
     }
 
+    function setTranslationField(lang, fieldName, value) {
+        setTranslations((current) => ({
+            ...current,
+            [lang]: { ...current[lang], [fieldName]: value },
+        }));
+    }
+
+    async function generateTranslations() {
+        setErrors({});
+        if (!hasAnyTranslatedValue(translations, "name") && !hasAnyTranslatedValue(translations, "description")) {
+            setErrors({ name: t("Fill at least one language before generating translations.") });
+            return;
+        }
+
+        setTranslating(true);
+        try {
+            const response = await adminApi.previewTranslations({
+                entityType: "PRODUCT",
+                sourceLanguage: firstLanguageWithContent(translations),
+                targetLanguages: SUPPORTED_LANGUAGES,
+                fields: translationsToRequest(translations),
+            });
+            setTranslations((current) => mergePreviewTranslations(current, response));
+        } catch (e) {
+            setErrors({ name: e?.message || t("Translation generation failed") });
+        } finally {
+            setTranslating(false);
+        }
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         const eMap = validate(model);
         if (Object.keys(eMap).length > 0) return;
         try {
             setBusy(true);
+            const confirmedTranslations = translationsToRequest(translations);
             await onSubmit?.(normalizeDrink({
                 ...model,
+                name: confirmedTranslations.name.en,
+                description: confirmedTranslations.description.en,
                 basePrice: String(model.basePrice).replace(",", "."),
+                translations: confirmedTranslations,
             }), imageFile);
         } finally {
             setBusy(false);
@@ -92,38 +166,20 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
 
     return (
         <form className={styles.form} onSubmit={handleSubmit}>
-            {/* Name */}
-            <div>
-                <label className={styles.label}>Name</label>
-                <input
-                    className={styles.input}
-                    value={model.name}
-                    onChange={(e) => update("name", e.target.value)}
-                    placeholder="Mango Basil Cooler"
-                />
-                {errors.name && (
-                    <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.name}</div>
-                )}
-            </div>
-
-            {/* Description */}
-            <div>
-                <label className={styles.label}>Description</label>
-                <textarea
-                    className={styles.input}
-                    rows={3}
-                    value={model.description}
-                    onChange={(e) => update("description", e.target.value)}
-                    placeholder="Refreshing sparkling drink with mango, basil and lime."
-                />
-                {errors.description && (
-                    <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.description}</div>
-                )}
-            </div>
+            <TranslationFields
+                styles={styles}
+                translations={translations}
+                disabled={busy || translating}
+                translating={translating}
+                onChange={setTranslationField}
+                onGenerate={generateTranslations}
+            />
+            {errors.name && <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.name}</div>}
+            {errors.description && <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.description}</div>}
 
             {/* Price */}
             <div>
-                <label className={styles.label}>Price (EUR)</label>
+                <label className={styles.label}>{t("Price")} (EUR)</label>
                 <input
                     className={styles.input}
                     type="text"
@@ -143,7 +199,7 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
 
             {/* Image (optional) */}
             <div>
-                <label className={styles.label}>Image (optional)</label>
+                <label className={styles.label}>{t("Image (optional)")}</label>
                 <input
                     type="file"
                     accept="image/*"
@@ -152,7 +208,7 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
                 {errors.image && (
                     <div className={styles.note} style={{ color: "#ff8aa6" }}>{errors.image}</div>
                 )}
-                <div className={styles.note}>If provided, it will be uploaded together with the drink (max 5MB).</div>
+                <div className={styles.note}>{t("If provided, it will be uploaded together with the drink (max 5MB).")}</div>
             </div>
 
             {/* Actions */}
@@ -160,9 +216,9 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
                 <button
                     className={`${styles.btn} ${styles.btnPrimary}`}
                     type="submit"
-                    disabled={busy || !canSave}
+                    disabled={busy || translating || !canSave}
                 >
-                    {busy ? "Saving..." : "Save"}
+                    {busy ? t("Saving...") : isCreate ? t("Confirm and create") : t("Save")}
                 </button>
                 <button
                     className={styles.btn}
@@ -170,7 +226,7 @@ export default function DrinkForm({ initial, onSubmit, onCancel }) {
                     onClick={onCancel}
                     disabled={busy}
                 >
-                    Cancel
+                    {t("Cancel")}
                 </button>
             </div>
         </form>

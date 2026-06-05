@@ -4,6 +4,7 @@ import "../styles/modal.css";
 import "../styles/home.css";
 import { catalogApi, productApi } from "../api/catalog";
 import { useCart } from "../context/CartContext";
+import { useLanguage } from "../context/LanguageContext";
 import QuickModal from "../components/QuickModal";
 import { isPizza, isPasta } from "../utils/productType";
 
@@ -18,6 +19,7 @@ function money(v) {
 export default function Home() {
   const navigate = useNavigate();
   const cart = useCart();
+  const { language, t, enumLabel } = useLanguage();
 
   const [latestPizzas, setLatestPizzas] = useState([]);
   const [latestPastas, setLatestPastas] = useState([]);
@@ -43,9 +45,9 @@ export default function Home() {
         setErr(null);
 
         const [pz, pa, dr] = await Promise.all([
-          catalogApi.pizzas(false),
-          catalogApi.pastas(true),
-          catalogApi.drinks(),
+          catalogApi.pizzas(false, language),
+          catalogApi.pastas(true, language),
+          catalogApi.drinks(language),
         ]);
 
         if (!mounted) return;
@@ -56,7 +58,7 @@ export default function Home() {
         setLatestDrinks((Array.isArray(dr) ? dr : []).slice().sort(byIdDesc).slice(0, 3));
       } catch (e) {
         console.error(e);
-        setErr(e?.message || "Failed to load");
+        setErr(e?.message || t("Failed to load"));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -65,7 +67,7 @@ export default function Home() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [language]);
 
   const closeQuickModal = () => {
     setQuickItem(null);
@@ -88,22 +90,22 @@ export default function Home() {
 
       try {
         setQuickLoading(true);
-        const p = await productApi.pizza(item.id, true);
+        const p = await productApi.pizza(item.id, true, language);
         setQuickPizza(p);
         if (p?.variants?.length) setQuickVariantId(String(p.variants[0].id));
       } catch (e) {
-        setQuickError(e?.data?.message || e?.message || "Failed to load pizza details.");
+        setQuickError(e?.data?.message || e?.message || t("Failed to load pizza details."));
       } finally {
         setQuickLoading(false);
       }
     } else if (isPasta(item)) {
       try {
         setQuickLoading(true);
-        const p = await productApi.pasta(item.id);
+        const p = await productApi.pasta(item.id, language);
         setQuickPasta(p);
         if (p?.sauces?.length) setQuickSauceId(String(p.sauces[0].id));
       } catch (e) {
-        setQuickError(e?.data?.message || e?.message || "Failed to load pasta details.");
+        setQuickError(e?.data?.message || e?.message || t("Failed to load pasta details."));
       } finally {
         setQuickLoading(false);
       }
@@ -123,14 +125,14 @@ export default function Home() {
         let v = variant;
 
         if (!v) {
-          const p = quickPizza?.id === item.id ? quickPizza : await productApi.pizza(item.id, true);
+          const p = quickPizza?.id === item.id ? quickPizza : await productApi.pizza(item.id, true, language);
           v = Array.isArray(p?.variants) && p.variants.length ? p.variants[0] : null;
         }
 
         const variantId =
           v?.id ?? (quickVariantId ? Number(quickVariantId) : null);
 
-        if (!variantId) throw new Error("Please select a pizza variant.");
+        if (!variantId) throw new Error(t("Please select a pizza variant."));
 
         await cart.addPizza({
           productId: item.id,
@@ -144,14 +146,14 @@ export default function Home() {
         let s = variant;
 
         if (!s) {
-          const p = quickPasta?.id === item.id ? quickPasta : await productApi.pasta(item.id);
+          const p = quickPasta?.id === item.id ? quickPasta : await productApi.pasta(item.id, language);
           s = Array.isArray(p?.sauces) && p.sauces.length ? p.sauces[0] : null;
         }
 
         const pastaSauceId =
           s?.id ?? (quickSauceId ? Number(quickSauceId) : null);
 
-        if (!pastaSauceId) throw new Error("Please select a pasta sauce.");
+        if (!pastaSauceId) throw new Error(t("Please select a pasta sauce."));
 
         await cart.addPasta({
           productId: item.id,
@@ -171,7 +173,7 @@ export default function Home() {
       closeQuickModal();
       cart?.refresh?.();
     } catch (e) {
-      alert(e?.data?.message || e?.message || "Failed to add to cart");
+      alert(e?.data?.message || e?.message || t("Failed to add to cart"));
     } finally {
       setAdding(false);
     }
@@ -182,20 +184,20 @@ export default function Home() {
       {/* HERO */}
       <section className="hero">
         <div className="hero-content">
-          <p className="eyebrow">Fresh • Fast • Hot</p>
+          <p className="eyebrow">{t("Fresh • Fast • Hot")}</p>
           <h1>
-            Tasty <span>Pizza</span> in minutes
+            {t("Tasty Pizza in minutes")}
           </h1>
           <p className="sub">
-            Hand-tossed dough, premium ingredients, stone-baked perfection.
-            Order now and get your pizza in under 30 minutes.
+            {t("Hand-tossed dough, premium ingredients, stone-baked perfection.")}{" "}
+            {t("Order now and get your pizza in under 30 minutes.")}
           </p>
           <div className="cta-row">
             <Link to="/menu" className="btn primary">
-              Order now
+              {t("Order now")}
             </Link>
             <a href="#why" className="btn ghost">
-              Learn more
+              {t("Learn more")}
             </a>
           </div>
         </div>
@@ -204,23 +206,23 @@ export default function Home() {
       {/* WHY */}
       <section id="why" className="why">
         <h2>
-          Why choose <span>Tasty Pizza</span>?
+          {t("Why choose Tasty Pizza?")}
         </h2>
         <div className="why-grid">
           <article>
             <div className="ic">🔥</div>
-            <h3>Stone-baked</h3>
-            <p>That perfect crust — crisp outside, soft inside.</p>
+            <h3>{t("Stone-baked")}</h3>
+            <p>{t("That perfect crust — crisp outside, soft inside.")}</p>
           </article>
           <article>
             <div className="ic">🧀</div>
-            <h3>Real mozzarella</h3>
-            <p>Stretchy, fragrant, and full of flavor.</p>
+            <h3>{t("Real mozzarella")}</h3>
+            <p>{t("Stretchy, fragrant, and full of flavor.")}</p>
           </article>
           <article>
             <div className="ic">⏱️</div>
-            <h3>Fast delivery</h3>
-            <p>Average delivery time under 30 minutes.</p>
+            <h3>{t("Fast delivery")}</h3>
+            <p>{t("Average delivery time under 30 minutes.")}</p>
           </article>
         </div>
       </section>
@@ -229,9 +231,9 @@ export default function Home() {
       <section className="section">
         <div className="container">
           <div className="section-heading-row">
-            <h2 className="section-title">NEWEST PIZZAS</h2>
+            <h2 className="section-title">{t("NEWEST PIZZAS")}</h2>
             <Link to="/menu#pizzas" className="home-see-more-btn">
-              See all <span className="home-arr" aria-hidden="true">→</span>
+              {t("See all")} <span className="home-arr" aria-hidden="true">→</span>
             </Link>
           </div>
 
@@ -272,10 +274,10 @@ export default function Home() {
                     {p.description && <p className="desc">{p.description}</p>}
                     <div className="meta">
                       <span className="price">
-                        from {money(p.basePrice ?? p.price)} EUR
+                        {t("from")} {money(p.basePrice ?? p.price)} EUR
                       </span>
                       {p.spicyLevel && (
-                        <span className="badge">Spicy level: {p.spicyLevel}</span>
+                        <span className="badge">{t("Spicy level")}: {enumLabel(p.spicyLevel)}</span>
                       )}
                     </div>
                   </div>
@@ -291,9 +293,9 @@ export default function Home() {
       <section className="section">
         <div className="container">
           <div className="section-heading-row">
-            <h2 className="section-title">NEWEST PASTAS</h2>
+            <h2 className="section-title">{t("NEWEST PASTAS")}</h2>
             <Link to="/menu#pastas" className="home-see-more-btn">
-              See all <span className="home-arr" aria-hidden="true">→</span>
+              {t("See all")} <span className="home-arr" aria-hidden="true">→</span>
             </Link>
           </div>
 
@@ -333,7 +335,7 @@ export default function Home() {
                     <div className="meta">
                       <span className="price">{money(p.basePrice ?? p.price)} EUR</span>
                       {p.spicyLevel && (
-                        <span className="badge">Spicy level: {p.spicyLevel}</span>
+                        <span className="badge">{t("Spicy level")}: {enumLabel(p.spicyLevel)}</span>
                       )}
                     </div>
                   </div>
@@ -347,9 +349,9 @@ export default function Home() {
       <section className="section">
         <div className="container">
           <div className="section-heading-row">
-            <h2 className="section-title">NEWEST DRINKS</h2>
+            <h2 className="section-title">{t("NEWEST DRINKS")}</h2>
             <Link to="/menu#drinks" className="home-see-more-btn">
-              See all <span className="home-arr" aria-hidden="true">→</span>
+              {t("See all")} <span className="home-arr" aria-hidden="true">→</span>
             </Link>
           </div>
 
@@ -398,16 +400,16 @@ export default function Home() {
       </section>
 
       <section className="testimonials">
-        <h2>What our customers say</h2>
+        <h2>{t("What our customers say")}</h2>
         <div className="quotes">
           <blockquote>
-            “Best crust in town!” <cite>— Mira</cite>
+            “{t("Best crust in town!")}” <cite>— Mira</cite>
           </blockquote>
           <blockquote>
-            “Arrived in 22 minutes. Hot and juicy.” <cite>— Ivan</cite>
+            “{t("Arrived in 22 minutes. Hot and juicy.")}” <cite>— Ivan</cite>
           </blockquote>
           <blockquote>
-            “My favorite Pepperoni. Perfect balance.” <cite>— George</cite>
+            “{t("My favorite Pepperoni. Perfect balance.")}” <cite>— George</cite>
           </blockquote>
         </div>
       </section>
