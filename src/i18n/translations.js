@@ -932,7 +932,7 @@ export const ENUM_TRANSLATIONS = {
     CLASSIC: "Класическо",
     THIN: "Тънко",
     WHOLEGRAIN: "Пълнозърнесто",
-    MILD: "Леко",
+    MILD: "Не люто",
     MEDIUM_SPICY: "Средно люто",
     HOT: "Люто",
     ADD: "Добавено",
